@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auto Grievance Raiser — UI Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2B39;
+    --paper:#F6F3EC;
+    --paper-2:#EDE8DC;
+    --amber:#D98A2B;
+    --teal:#2F6E62;
+    --clay:#B0492F;
+    --gray:#8A8578;
+    --line:#D8D2C2;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'IBM Plex Sans',sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.5;
+    padding-bottom:60px;
+  }
+  h1,h2,h3{font-family:'Source Serif 4',serif;font-weight:600;color:var(--ink);}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  /* top bar */
+  header.app-top{
+    background:var(--ink);
+    color:var(--paper);
+    padding:18px 32px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:3px solid var(--amber);
+  }
+  header.app-top h1{color:var(--paper);font-size:20px;}
+  header.app-top span{font-size:13px;color:var(--paper-2);}
+
+  /* main toggle */
+  .side-toggle{
+    display:flex;
+    gap:0;
+    max-width:1040px;
+    margin:0 auto;
+    border-bottom:1px solid var(--line);
+  }
+  .side-toggle button{
+    flex:1;
+    padding:16px 20px;
+    background:none;
+    border:none;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:15px;
+    font-weight:500;
+    color:var(--gray);
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+  }
+  .side-toggle button.active{
+    color:var(--ink);
+    border-bottom-color:var(--amber);
+  }
+
+  .wrap{max-width:1040px;margin:0 auto;padding:32px;}
+
+  /* screen tabs within a side */
+  .screen-tabs{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap;}
+  .screen-tabs button{
+    padding:8px 16px;
+    background:var(--white);
+    border:1px solid var(--line);
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13px;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .screen-tabs button.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* phone frame for citizen screens */
+  .phone{
+    width:340px;
+    background:var(--white);
+    border:1px solid var(--line);
+    margin:0 auto;
+  }
+  .phone-top{
+    background:var(--ink);
+    color:var(--paper);
+    padding:14px 18px;
+    font-size:13px;
+    font-weight:500;
+    display:flex;
+    justify-content:space-between;
+  }
+  .phone-body{padding:24px 18px;}
+
+  .field-label{font-size:12px;color:var(--gray);margin-bottom:4px;letter-spacing:0.02em;}
+  .field{
+    border:1px solid var(--line);
+    padding:10px 12px;
+    font-size:14px;
+    margin-bottom:16px;
+    background:var(--paper);
+  }
+  .btn{
+    display:inline-block;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:11px 20px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    width:100%;
+    text-align:center;
+  }
+  .btn.secondary{
+    background:none;
+    color:var(--ink);
+    border:1px solid var(--ink);
+  }
+  .btn.amber{background:var(--amber);color:var(--ink);}
+
+  .stepper{display:flex;gap:6px;margin-bottom:20px;}
+  .stepper .dot{
+    flex:1;
+    height:3px;
+    background:var(--line);
+  }
+  .stepper .dot.done{background:var(--teal);}
+  .stepper .dot.now{background:var(--amber);}
+
+  .photo-box{
+    border:1px dashed var(--gray);
+    height:160px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--gray);
+    font-size:13px;
+    margin-bottom:16px;
+    background:var(--paper-2);
+  }
+
+  .issue-tag{
+    display:inline-block;
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    padding:4px 10px;
+    font-size:12px;
+    margin:0 6px 6px 0;
+  }
+
+  .meta-row{display:flex;justify-content:space-between;font-size:12px;color:var(--gray);margin-bottom:14px;}
+
+  .status-track{margin-top:8px;}
+  .status-step{
+    display:flex;
+    gap:12px;
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13px;
+  }
+  .status-step:last-child{border-bottom:none;}
+  .status-dot{width:9px;height:9px;border-radius:50%;background:var(--line);margin-top:4px;flex-shrink:0;}
+  .status-dot.done{background:var(--teal);}
+  .status-dot.current{background:var(--amber);}
+  .status-step .s-label{color:var(--gray);}
+  .status-step.active .s-label{color:var(--ink);font-weight:500;}
+
+  /* admin layout */
+  .admin-shell{display:flex;border:1px solid var(--line);background:var(--white);min-height:520px;}
+  .admin-nav{
+    width:190px;
+    background:var(--paper-2);
+    border-right:1px solid var(--line);
+    padding:20px 0;
+  }
+  .admin-nav .nav-item{
+    padding:10px 20px;
+    font-size:13px;
+    color:var(--gray);
+    border-left:3px solid transparent;
+  }
+  .admin-nav .nav-item.active{
+    color:var(--ink);
+    font-weight:500;
+    border-left-color:var(--amber);
+    background:var(--white);
+  }
+  .admin-main{flex:1;padding:24px;}
+
+  table.issue-table{width:100%;border-collapse:collapse;font-size:13px;}
+  table.issue-table th{
+    text-align:left;
+    font-weight:500;
+    color:var(--gray);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+  }
+  table.issue-table td{
+    padding:12px 10px;
+    border-bottom:1px solid var(--line);
+    vertical-align:middle;
+  }
+  .priority-bar{width:4px;height:32px;display:inline-block;margin-right:10px;vertical-align:middle;}
+  .p-high{background:var(--clay);}
+  .p-med{background:var(--amber);}
+  .p-low{background:var(--teal);}
+  .badge{
+    font-size:11px;
+    padding:3px 8px;
+    border:1px solid var(--line);
+    color:var(--gray);
+  }
+  .badge.count{background:var(--paper-2);color:var(--ink);}
+
+  .heatmap-box{
+    height:340px;
+    background:
+      radial-gradient(circle at 30% 40%, rgba(176,73,47,0.35), transparent 18%),
+      radial-gradient(circle at 55% 60%, rgba(217,138,43,0.30), transparent 16%),
+      radial-gradient(circle at 70% 30%, rgba(217,138,43,0.22), transparent 14%),
+      radial-gradient(circle at 45% 25%, rgba(47,110,98,0.20), transparent 12%),
+      var(--paper-2);
+    border:1px solid var(--line);
+    position:relative;
+  }
+  .heatmap-legend{
+    position:absolute;bottom:12px;left:12px;
+    font-size:11px;color:var(--gray);
+    background:rgba(255,255,255,0.85);
+    padding:8px 10px;border:1px solid var(--line);
+  }
+  .heatmap-legend .sw{display:inline-block;width:8px;height:8px;margin-right:5px;}
+
+  .chat-panel{border:1px solid var(--line);background:var(--paper);}
+  .chat-msg{padding:12px 16px;font-size:13px;border-bottom:1px solid var(--line);}
+  .chat-msg.admin{color:var(--ink);font-weight:500;background:var(--white);}
+  .chat-msg.agent{color:var(--ink);}
+  .chat-msg .who{font-size:11px;color:var(--gray);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;}
+  .chat-input{display:flex;border-top:1px solid var(--line);}
+  .chat-input input{flex:1;border:none;padding:12px;font-size:13px;background:var(--white);font-family:'IBM Plex Sans',sans-serif;}
+  .chat-input button{border:none;background:var(--ink);color:var(--paper);padding:0 20px;font-size:13px;cursor:pointer;}
+
+  .approval-card{
+    border:1px solid var(--line);
+    background:var(--white);
+    padding:20px;
+    margin-top:16px;
+  }
+  .approval-card .draft-label{font-size:11px;color:var(--amber);text-transform:uppercase;letter-spacing:0.05em;font-weight:500;margin-bottom:8px;}
+  .approval-card pre{
+    white-space:pre-wrap;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13px;
+    background:var(--paper);
+    padding:14px;
+    border:1px solid var(--line);
+    margin:10px 0 16px;
+  }
+  .approval-actions{display:flex;gap:10px;}
+  .approval-actions .btn{width:auto;padding:9px 18px;}
+
+  .section-title{font-size:16px;margin-bottom:16px;}
+  .note{font-size:12px;color:var(--gray);margin-top:16px;border-top:1px solid var(--line);padding-top:12px;}
+
+  .agent-log{border:1px solid var(--line);background:var(--paper);}
+  .agent-log-entry{padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px;}
+  .agent-log-entry:last-child{border-bottom:none;}
+  .agent-log-who{font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:0.04em;font-weight:500;margin-bottom:3px;}
+
+  .verify-card{
+    border:1px solid var(--amber);
+    background:#FBF3E7;
+    padding:14px;
+    margin-top:16px;
+  }
+  .verify-label{font-size:10px;color:var(--amber);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;}
+
+  .esc-days{font-size:12px;}
+  .esc-days.breach{color:var(--clay);font-weight:600;}
+  .esc-days.warn{color:var(--amber);font-weight:600;}
+  .esc-tier{font-size:11px;color:var(--gray);}
+</style>
+</head>
+<body>
+
+<header class="app-top">
+  <h1>Auto Grievance Raiser</h1>
+  <span>UI mockup — prototype, not final visual design</span>
+</header>
+
+<div class="side-toggle">
+  <button class="active" onclick="showSide('citizen')">Citizen system</button>
+  <button onclick="showSide('admin')">Admin system</button>
+</div>
+
+<!-- CITIZEN SIDE -->
+<div class="wrap side" id="side-citizen">
+  <div class="screen-tabs">
+    <button class="active" onclick="showScreen('citizen','login')">1. Login</button>
+    <button onclick="showScreen('citizen','upload')">2. Upload</button>
+    <button onclick="showScreen('citizen','confirm')">3. Confirm</button>
+    <button onclick="showScreen('citizen','track')">4. Track</button>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="screen active" id="citizen-login">
+    <div class="phone">
+      <div class="phone-top"><span>Nagar Seva</span><span>9:41</span></div>
+      <div class="phone-body">
+        <h3 style="margin-bottom:6px;">Sign in</h3>
+        <p style="font-size:12px;color:var(--gray);margin-bottom:20px;">Simulated Aadhaar-style login — prototype only, no real UIDAI verification.</p>
+        <div class="field-label">Full name</div>
+        <div class="field">Ananya Sharma</div>
+        <div class="field-label">Aadhaar number (mock)</div>
+        <div class="field mono">XXXX XXXX 4821</div>
+        <div class="field-label">Date of birth</div>
+        <div class="field">14 / 03 / 1994</div>
+        <button class="btn">Send OTP</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="screen" id="citizen-upload">
+    <div class="phone">
+      <div class="phone-top"><span>Report an issue</span><span>9:42</span></div>
+      <div class="phone-body">
+        <div class="stepper"><div class="dot done"></div><div class="dot now"></div><div class="dot"></div><div class="dot"></div></div>
+        <div class="photo-box">Tap to capture photo</div>
+        <div class="field-label">Describe the issue (optional)</div>
+        <div class="field" style="height:56px;color:var(--gray);">Streetlight has been off for a week near the bus stop</div>
+        <button class="btn">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM -->
+  <div class="screen" id="citizen-confirm">
+    <div class="phone">
+      <div class="phone-top"><span>Confirm detected issues</span><span>9:42</span></div>
+      <div class="phone-body">
+        <div class="stepper"><div class="dot done"></div><div class="dot done"></div><div class="dot now"></div><div class="dot"></div></div>
+        <div class="photo-box">Uploaded photo preview</div>
+        <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">The system detected the following issues in your photo:</p>
+        <div style="margin-bottom:16px;">
+          <span class="issue-tag">Broken streetlight</span>
+          <span class="issue-tag">Damaged pole base</span>
+        </div>
+        <p style="font-size:12px;color:var(--gray);margin-bottom:16px;">This will be routed to: <strong>Electrical Dept.</strong> based on the detected issue and your description.</p>
+        <button class="btn amber">Yes, send to concerned authority</button>
+        <div style="height:10px;"></div>
+        <button class="btn secondary">Retake photo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACK -->
+  <div class="screen" id="citizen-track">
+    <div class="phone">
+      <div class="phone-top"><span>My reports</span><span>9:45</span></div>
+      <div class="phone-body">
+        <div class="meta-row" style="margin-bottom:2px;">
+          <span class="mono">TICKET #GR-4821</span>
+          <span class="badge">Electrical Dept.</span>
+        </div>
+        <p style="font-size:13px;font-weight:500;margin-bottom:16px;">Broken streetlight — MG Road, Ward 4</p>
+        <div class="status-track">
+          <div class="status-step active"><div class="status-dot done"></div><div><div class="s-label">Submitted</div></div></div>
+          <div class="status-step active"><div class="status-dot done"></div><div><div class="s-label">Reviewed &amp; assigned</div></div></div>
+          <div class="status-step active"><div class="status-dot current"></div><div><div class="s-label">In progress — contractor dispatched</div></div></div>
+          <div class="status-step"><div class="status-dot"></div><div><div class="s-label">Pending your confirmation</div></div></div>
+          <div class="status-step"><div class="status-dot"></div><div><div class="s-label">Closed</div></div></div>
+        </div>
+        <div class="note">3 other citizens reported this same issue — affected count: 4</div>
+
+        <h3 style="font-size:14px;margin:20px 0 8px;">Updates</h3>
+        <div class="agent-log">
+          <div class="agent-log-entry">
+            <div class="agent-log-who">Communication Agent · 2 days ago</div>
+            <div>Your ticket has been reviewed and assigned to R. Verma, Electrical Dept.</div>
+          </div>
+          <div class="agent-log-entry">
+            <div class="agent-log-who">Communication Agent · today</div>
+            <div>A contractor has been dispatched to fix the streetlight. We'll notify you once it's marked complete.</div>
+          </div>
+        </div>
+
+        <div class="verify-card">
+          <div class="verify-label">Verification Agent</div>
+          <p style="font-size:13px;margin:6px 0 12px;">The contractor has submitted a completion photo. Our system compared it against your original photo and the streetlight appears fixed. Can you confirm?</p>
+          <div class="approval-actions">
+            <button class="btn amber" style="width:auto;">Yes, it's fixed</button>
+            <button class="btn secondary" style="width:auto;">Still not fixed</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN SIDE -->
+<div class="wrap side" id="side-admin" style="display:none;">
+  <div class="screen-tabs">
+    <button class="active" onclick="showScreen('admin','queue')">Queue &amp; priority</button>
+    <button onclick="showScreen('admin','heatmap')">Heatmap</button>
+    <button onclick="showScreen('admin','agent')">AI agent (MCP)</button>
+    <button onclick="showScreen('admin','approve')">Contractor email approval</button>
+  </div>
+
+  <!-- QUEUE -->
+  <div class="screen active" id="admin-queue">
+    <div class="admin-shell">
+      <div class="admin-nav">
+        <div class="nav-item active">Queue</div>
+        <div class="nav-item">Heatmap</div>
+        <div class="nav-item">AI agent</div>
+        <div class="nav-item">Officers</div>
+        <div class="nav-item">Settings</div>
+      </div>
+      <div class="admin-main">
+        <h3 class="section-title">Electrical Dept. — open issues</h3>
+        <table class="issue-table">
+          <thead>
+            <tr><th></th><th>Ticket</th><th>Issue</th><th>Location</th><th>Affected</th><th>Priority</th><th>Escalation</th><th>Officer</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="priority-bar p-high"></span></td>
+              <td class="mono">GR-4821</td>
+              <td>Broken streetlight</td>
+              <td>MG Road, Ward 4</td>
+              <td><span class="badge count">4</span></td>
+              <td>High — 87</td>
+              <td><div class="esc-days breach">9d pending</div><div class="esc-tier">Escalated → Dept. Head</div></td>
+              <td>R. Verma</td>
+            </tr>
+            <tr>
+              <td><span class="priority-bar p-med"></span></td>
+              <td class="mono">GR-4790</td>
+              <td>Exposed wiring</td>
+              <td>Station Rd, Ward 2</td>
+              <td><span class="badge count">1</span></td>
+              <td>Medium — 61</td>
+              <td><div class="esc-days warn">3d pending</div><div class="esc-tier">Tier 1 — within SLA</div></td>
+              <td>Unassigned</td>
+            </tr>
+            <tr>
+              <td><span class="priority-bar p-low"></span></td>
+              <td class="mono">GR-4765</td>
+              <td>Flickering pole light</td>
+              <td>Sector 9, Ward 4</td>
+              <td><span class="badge count">2</span></td>
+              <td>Low — 28</td>
+              <td><div class="esc-days">1d pending</div><div class="esc-tier">Tier 1 — within SLA</div></td>
+              <td>S. Iyer</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">Priority = base severity for issue type × affected-count multiplier, sorted high to low by default. Escalation column is written by the Escalation Agent, which watches each ticket's SLA timer and auto-escalates + logs a reason on breach.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEATMAP -->
+  <div class="screen" id="admin-heatmap">
+    <div class="admin-shell">
+      <div class="admin-nav">
+        <div class="nav-item">Queue</div>
+        <div class="nav-item active">Heatmap</div>
+        <div class="nav-item">AI agent</div>
+        <div class="nav-item">Officers</div>
+        <div class="nav-item">Settings</div>
+      </div>
+      <div class="admin-main">
+        <h3 class="section-title">Issue concentration — city-wide</h3>
+        <div class="heatmap-box">
+          <div class="heatmap-legend">
+            <div><span class="sw" style="background:var(--clay);"></span>High density</div>
+            <div><span class="sw" style="background:var(--amber);"></span>Medium density</div>
+            <div><span class="sw" style="background:var(--teal);"></span>Low density</div>
+          </div>
+        </div>
+        <p class="note">v1 shows raw complaint density, not normalized by ward population.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT -->
+  <div class="screen" id="admin-agent">
+    <div class="admin-shell">
+      <div class="admin-nav">
+        <div class="nav-item">Queue</div>
+        <div class="nav-item">Heatmap</div>
+        <div class="nav-item active">AI agent</div>
+        <div class="nav-item">Officers</div>
+        <div class="nav-item">Settings</div>
+      </div>
+      <div class="admin-main">
+        <h3 class="section-title">Ask about the backlog</h3>
+        <div class="chat-panel">
+          <div class="chat-msg admin"><div class="who">Admin</div>How many unresolved issues do we have in Ward 4 this week, and what's the highest priority one?</div>
+          <div class="chat-msg agent"><div class="who">Agent</div>Ward 4 has 6 open issues this week. Highest priority is GR-4821 (broken streetlight, MG Road) — priority score 87, reported by 4 citizens, currently assigned to R. Verma and in progress.</div>
+          <div class="chat-input">
+            <input type="text" placeholder="Ask a question about open issues...">
+            <button>Send</button>
+          </div>
+        </div>
+        <p class="note">Agent answers are sourced live from the issue database via MCP tools — it can read and draft, but cannot send contractor emails or close tickets without admin approval.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPROVE -->
+  <div class="screen" id="admin-approve">
+    <div class="admin-shell">
+      <div class="admin-nav">
+        <div class="nav-item">Queue</div>
+        <div class="nav-item">Heatmap</div>
+        <div class="nav-item">AI agent</div>
+        <div class="nav-item active">Officers</div>
+        <div class="nav-item">Settings</div>
+      </div>
+      <div class="admin-main">
+        <h3 class="section-title">Contractor email — draft ready</h3>
+        <div class="approval-card">
+          <div class="draft-label">Drafted by agent — not yet sent</div>
+          <p style="font-size:13px;"><strong>To:</strong> contracts@brightwaycontractors.in<br><strong>Subject:</strong> Work order — 3 streetlight repairs, Ward 4</p>
+          <pre>Dear team,
+
+Please find below 3 confirmed streetlight repair tasks for Ward 4, prioritized by severity:
+
+1. GR-4821 — MG Road (high priority, 4 reports)
+2. GR-4790 — Station Road (medium priority)
+3. GR-4765 — Sector 9 (low priority)
+
+Please reply to this email with a photo once each repair is complete.
+
+Regards,
+Electrical Dept., Municipal Corporation</pre>
+          <div class="approval-actions">
+            <button class="btn amber">Approve &amp; send</button>
+            <button class="btn secondary">Edit draft</button>
+            <button class="btn secondary">Discard</button>
+          </div>
+        </div>
+        <p class="note">No email leaves this system without an explicit approve click — the agent can draft but never sends unilaterally.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showSide(side){
+  document.getElementById('side-citizen').style.display = side === 'citizen' ? 'block' : 'none';
+  document.getElementById('side-admin').style.display = side === 'admin' ? 'block' : 'none';
+  document.querySelectorAll('.side-toggle button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+function showScreen(side, name){
+  document.querySelectorAll('#side-' + side + ' .screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(side + '-' + name).classList.add('active');
+  document.querySelectorAll('#side-' + side + ' .screen-tabs button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>

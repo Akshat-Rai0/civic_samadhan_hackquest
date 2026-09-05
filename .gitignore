@@ -1,0 +1,35 @@
+# Operating system and editor files
+.DS_Store
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+env/
+.env/
+
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+
+# Frontend dependencies and build output
+node_modules/
+dist/
+build/
+
+# Runtime data and local databases
+grievance-app/backend/uploads/*
+!grievance-app/backend/uploads/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log

@@ -1,0 +1,171 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { uploadIssue } from '../../api/client';
+
+export default function Upload() {
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [description, setDescription] = useState('');
+  const [deviceCoords, setDeviceCoords] = useState({ lat: null, lng: null });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Silently capture device coordinates if user allows
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setDeviceCoords({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          });
+        },
+        () => {
+          // Fallback to default location if denied
+          setDeviceCoords({ lat: 28.6139, lng: 77.2090 });
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+  }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setError(null);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      setError('Please take or choose a photograph of the issue.');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      if (deviceCoords.lat && deviceCoords.lng) {
+        formData.append('device_lat', deviceCoords.lat);
+        formData.append('device_lng', deviceCoords.lng);
+      }
+      if (description.trim()) {
+        formData.append('description', description.trim());
+      }
+
+      const res = await uploadIssue(formData);
+      navigate(`/confirm/${res.image_id}`);
+    } catch (err) {
+      setError(err.message || 'Upload failed. Please try again.');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="container-narrow" style={{ marginTop: 'var(--spacing-lg)' }}>
+      <div className="card">
+        {/* Step indicator */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: 'var(--spacing-md)' }}>
+          <div style={{ flex: 1, height: '4px', borderRadius: '2px', backgroundColor: 'var(--color-green)' }} />
+          <div style={{ flex: 1, height: '4px', borderRadius: '2px', backgroundColor: 'var(--color-orange)' }} />
+          <div style={{ flex: 1, height: '4px', borderRadius: '2px', backgroundColor: 'var(--color-border)' }} />
+          <div style={{ flex: 1, height: '4px', borderRadius: '2px', backgroundColor: 'var(--color-border)' }} />
+        </div>
+
+        <div style={{ marginBottom: 'var(--spacing-md)' }}>
+          <span className="badge badge-blue">Step 2 of 4</span>
+          <h1 style={{ marginTop: 'var(--spacing-xs)', marginBottom: '4px' }}>Report an issue</h1>
+          <p className="text-muted" style={{ fontSize: '0.85rem' }}>
+            Take a photo of the problem. Geotagging and municipal classification will be applied automatically.
+          </p>
+        </div>
+
+        {error && <div className="notice notice-warning">{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+
+          <div
+            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+            style={{
+              border: '2px dashed var(--color-border)',
+              borderRadius: 'var(--radius)',
+              minHeight: '180px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'var(--color-bg)',
+              cursor: 'pointer',
+              marginBottom: 'var(--spacing-md)',
+              overflow: 'hidden',
+              position: 'relative',
+            }}
+          >
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt="Selected issue"
+                style={{ width: '100%', height: '180px', objectFit: 'cover' }}
+              />
+            ) : (
+              <div style={{ textAlign: 'center', padding: 'var(--spacing-md)' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📷</div>
+                <div style={{ fontWeight: 600, color: 'var(--color-text)' }}>Tap to capture or select photo</div>
+                <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                  Streetlights, potholes, garbage piles, open drains
+                </div>
+              </div>
+            )}
+          </div>
+
+          {previewUrl && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm btn-block"
+              style={{ marginBottom: 'var(--spacing-md)' }}
+              onClick={() => fileInputRef.current && fileInputRef.current.click()}
+            >
+              Choose different photo
+            </button>
+          )}
+
+          <div className="form-group">
+            <label htmlFor="desc">Describe the issue (optional)</label>
+            <textarea
+              id="desc"
+              className="form-textarea"
+              placeholder="E.g. Streetlight has been flickering for three nights near the bus stop."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary btn-block"
+            disabled={submitting || !selectedFile}
+          >
+            {submitting ? 'Uploading photo...' : 'Continue to confirmation'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
