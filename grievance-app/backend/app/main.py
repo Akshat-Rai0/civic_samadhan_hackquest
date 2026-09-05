@@ -39,8 +39,56 @@ app.include_router(auth_router)
 app.include_router(issues_router)
 app.include_router(admin_router)
 
+def seed_initial_data():
+    from app.database import SessionLocal
+    from app.models.department import Department
+    from app.models.officer import Officer
+    from app.models.user import User
+
+    db = SessionLocal()
+    try:
+        departments = [
+            (1, "Electrical Department"),
+            (2, "Roads & Infrastructure"),
+            (3, "Water & Sewage"),
+            (4, "Sanitation"),
+            (5, "Parks & Gardens"),
+            (6, "Building Inspection"),
+            (7, "General Municipal Administration"),
+        ]
+        for dept_id, name in departments:
+            dept = db.query(Department).filter(Department.id == dept_id).first()
+            if not dept:
+                dept = Department(id=dept_id, name=name)
+                db.add(dept)
+        
+        officers = [
+            (1, 1, "Rajesh Sharma", "rajesh.sharma@delhi.gov.in"),
+            (2, 2, "Vikram Patel", "vikram.patel@delhi.gov.in"),
+            (3, 3, "Sunita Rao", "sunita.rao@delhi.gov.in"),
+            (4, 4, "Amit Verma", "amit.verma@delhi.gov.in"),
+        ]
+        for off_id, dep_id, off_name, off_email in officers:
+            off = db.query(Officer).filter(Officer.id == off_id).first()
+            if not off:
+                off = Officer(id=off_id, department_id=dep_id, name=off_name, email=off_email, active=True)
+                db.add(off)
+
+        user = db.query(User).filter(User.id == 1).first()
+        if not user:
+            user = User(id=1, mock_id_number="123456789012", name="Akshat Rai", phone="9876543210")
+            db.add(user)
+
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Initial seed notice: {e}")
+    finally:
+        db.close()
+
 @app.on_event("startup")
 async def startup_event():
+    seed_initial_data()
     load_model()
 
 @app.get("/")

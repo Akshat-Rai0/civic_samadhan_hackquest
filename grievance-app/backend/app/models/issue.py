@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, func
 from sqlalchemy.orm import relationship
-from geoalchemy2 import Geography
 from app.database import Base
 
 class IssueCluster(Base):
@@ -13,7 +12,6 @@ class IssueCluster(Base):
     department_id = Column(Integer, ForeignKey('departments.id'), nullable=True)
     zone = Column(String(100))
     postal_code = Column(String(20))
-    location = Column(Geography(geometry_type='POINT', srid=4326), nullable=True)
     lat = Column(Float, nullable=True)
     lng = Column(Float, nullable=True)
     affected_count = Column(Integer, default=1)

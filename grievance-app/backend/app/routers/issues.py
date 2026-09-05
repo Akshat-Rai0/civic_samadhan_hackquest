@@ -46,6 +46,13 @@ async def upload_issue(
 
     user_id = int(current_user["id"])
 
+    # Ensure user exists in database
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        user = User(id=user_id, mock_id_number=current_user.get("mock_id_number", f"ID_{user_id}"), name=current_user.get("name", "Citizen"))
+        db.add(user)
+        db.commit()
+
     # Create unclustered issue image
     image_record = IssueImage(
         uploaded_by_user_id=user_id,
