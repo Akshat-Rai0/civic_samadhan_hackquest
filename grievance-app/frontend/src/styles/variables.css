@@ -1,26 +1,36 @@
 :root {
   --color-white: #FFFFFF;
-  --color-bg: #FAFAF7;
+  --color-bg: #FAF9F5;
+  --color-heading: #151A30;
   --color-orange: #F2994A;
   --color-green: #27A567;
   --color-blue: #2F80ED;
-  --color-text: #2B2B2B;
-  --color-muted: #6B6B6B;
-  --color-border: #E4E1D8;
-  --color-escalated: #D4722A;
-  --color-orange-light: #FFF3E6;
-  --color-green-light: #E8F5EF;
-  --color-blue-light: #EBF2FD;
+  --color-red: #EB5757;
+  --color-purple: #6366F1;
+  --color-text: #2D3748;
+  --color-muted: #64748B;
+  --color-border: #E8E6E1;
+  --color-escalated: #EB5757;
+  --color-orange-light: #FFF8F0;
+  --color-green-light: #F0FDF4;
+  --color-blue-light: #EFF6FF;
+  --color-purple-light: #EEF2FF;
+  --color-red-light: #FEF2F2;
 
-  --radius: 8px;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 9999px;
 
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --min-touch: 44px;
+  --spacing-xs: 6px;
+  --spacing-sm: 10px;
+  --spacing-md: 18px;
+  --spacing-lg: 28px;
+  --spacing-xl: 36px;
+
+  --font-heading: 'Lora', 'Merriweather', Georgia, serif;
+  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --min-touch: 42px;
 }

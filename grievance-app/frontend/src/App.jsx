@@ -31,15 +31,14 @@ function NavigationHeader() {
   };
 
   const maskedId = citizen?.mock_id_number
-    ? `XXXX XXXX ${citizen.mock_id_number.slice(-4)}`
-    : 'XXXX XXXX 4821';
+    ? `XXXX ${citizen.mock_id_number.slice(-4)}`
+    : 'XXXX 4821';
 
   return (
     <header
       style={{
         backgroundColor: '#FFFFFF',
         borderBottom: '1px solid var(--color-border)',
-        padding: '0 var(--spacing-md)',
         position: 'sticky',
         top: 0,
         zIndex: 100,
@@ -47,18 +46,16 @@ function NavigationHeader() {
     >
       <div
         style={{
-          maxWidth: '1040px',
+          maxWidth: '1080px',
           margin: '0 auto',
-          minHeight: '60px',
+          height: '64px',
           display: 'flex',
-          flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '12px',
-          padding: '8px 0',
+          padding: '0 var(--spacing-md)',
         }}
       >
-        {/* Brand Logo */}
+        {/* Brand Logo (Left) */}
         <Link
           to={isAdmin ? '/admin' : '/upload'}
           style={{
@@ -66,141 +63,138 @@ function NavigationHeader() {
             alignItems: 'center',
             gap: '10px',
             textDecoration: 'none',
-            color: 'var(--color-text)',
           }}
         >
           <div
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '6px',
-              backgroundColor: 'var(--color-orange)',
-              color: '#FFFFFF',
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
+              backgroundColor: '#FFFFFF',
+              border: '2px solid var(--color-blue)',
+              color: 'var(--color-blue)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 700,
-              fontSize: '1.1rem',
+              fontSize: '1rem',
+              boxShadow: '0 0 0 2px var(--color-orange-light)',
             }}
           >
-            N
+            ⚙
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.1 }}>Nagar Seva</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>
-              Auto Grievance Raiser
+            <div
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontWeight: 700,
+                fontSize: '1.15rem',
+                color: 'var(--color-heading)',
+                lineHeight: 1.1,
+              }}
+            >
+              CivicSamadhaan
+            </div>
+            <div style={{ fontSize: '0.68rem', color: 'var(--color-muted)', letterSpacing: '0.02em' }}>
+              Nagar Seva Redressal
             </div>
           </div>
         </Link>
 
-        {/* Citizen Session Info if logged in */}
-        {isAuthenticated && !isAdmin && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              backgroundColor: 'var(--color-bg)',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              border: '1px solid var(--color-border)',
-              fontSize: '0.8rem',
-            }}
-          >
-            <div>
-              <span style={{ fontWeight: 600 }}>{citizen?.name || 'Citizen'}</span>
-              <span className="text-muted" style={{ marginLeft: '6px', fontSize: '0.75rem' }}>
-                ({maskedId})
-              </span>
-            </div>
-            <span
-              className="badge badge-green"
-              style={{ padding: '2px 8px', fontSize: '0.7rem' }}
-              title="Active Citizen Session"
-            >
-              {sessionId}
-            </span>
-            <button
-              type="button"
-              onClick={handleEndSession}
-              style={{
-                background: 'none',
-                border: '1px solid var(--color-escalated)',
-                color: 'var(--color-escalated)',
-                borderRadius: '4px',
-                padding: '2px 8px',
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-              title="End citizen session and sign out"
-            >
-              Close Session
-            </button>
-          </div>
-        )}
-
-        {/* Section Mode Toggle */}
-        <nav style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        {/* Navigation Tabs (Center) */}
+        <nav style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           <Link
             to="/upload"
-            style={{
-              padding: '6px 14px',
-              borderRadius: '6px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color: !isAdmin ? 'var(--color-white)' : 'var(--color-text)',
-              backgroundColor: !isAdmin ? 'var(--color-blue)' : 'transparent',
-              textDecoration: 'none',
-            }}
+            className={`nav-tab-link ${!isAdmin ? 'active' : ''}`}
           >
             Citizen Portal
           </Link>
 
           <Link
             to="/admin"
-            style={{
-              padding: '6px 14px',
-              borderRadius: '6px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color: isAdmin ? 'var(--color-white)' : 'var(--color-text)',
-              backgroundColor: isAdmin ? 'var(--color-text)' : 'transparent',
-              textDecoration: 'none',
-            }}
+            className={`nav-tab-link ${isAdmin && location.pathname === '/admin' ? 'active' : ''}`}
           >
-            Admin Dashboard
+            Admin Queue
           </Link>
 
-          {isAdmin && (
-            <div style={{ display: 'flex', gap: '4px', marginLeft: '12px', borderLeft: '1px solid var(--color-border)', paddingLeft: '12px' }}>
-              <Link
-                to="/admin"
+          <Link
+            to="/admin/heatmap"
+            className={`nav-tab-link ${isAdmin && location.pathname === '/admin/heatmap' ? 'active' : ''}`}
+          >
+            Heatmap
+          </Link>
+        </nav>
+
+        {/* Top-Right Actions (Primary CTA in Accent Orange + Profile Far Right) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link to="/upload" className="btn btn-primary btn-sm">
+            <span style={{ fontSize: '1rem' }}>📄</span> File Complaint
+          </Link>
+
+          {/* Profile Avatar Far Right */}
+          {isAuthenticated ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                paddingLeft: '8px',
+                borderLeft: '1px solid var(--color-border)',
+              }}
+            >
+              <div
                 style={{
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  padding: '4px 8px',
-                  color: location.pathname === '/admin' ? 'var(--color-orange)' : 'var(--color-muted)',
-                  textDecoration: 'none',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--color-orange-light)',
+                  border: '1px solid var(--color-orange)',
+                  color: 'var(--color-orange)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
                 }}
+                title={`${citizen?.name || 'User'} (${maskedId})`}
               >
-                Queue
-              </Link>
-              <Link
-                to="/admin/heatmap"
+                {citizen?.name ? citizen.name.charAt(0) : 'U'}
+              </div>
+              <button
+                type="button"
+                onClick={handleEndSession}
                 style={{
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  padding: '4px 8px',
-                  color: location.pathname === '/admin/heatmap' ? 'var(--color-orange)' : 'var(--color-muted)',
-                  textDecoration: 'none',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-muted)',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  padding: '2px 4px',
                 }}
+                title="Sign out"
               >
-                Heatmap
-              </Link>
+                Exit
+              </button>
+            </div>
+          ) : (
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--color-blue-light)',
+                color: 'var(--color-blue)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+              }}
+            >
+              👤
             </div>
           )}
-        </nav>
+        </div>
       </div>
     </header>
   );

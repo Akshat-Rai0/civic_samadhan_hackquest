@@ -44,20 +44,21 @@ export default function IssueTable({ issues = [], onRowClick }) {
             style={{
               backgroundColor: 'var(--color-bg)',
               borderBottom: '1px solid var(--color-border)',
-              color: 'var(--color-muted)',
+              color: 'var(--color-heading)',
               fontSize: '0.8rem',
+              fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.04em',
             }}
           >
-            <th style={{ padding: '12px 16px' }}>Priority</th>
-            <th style={{ padding: '12px 16px' }}>Ticket</th>
-            <th style={{ padding: '12px 16px' }}>Category</th>
-            <th style={{ padding: '12px 16px' }}>Location</th>
-            <th style={{ padding: '12px 16px' }}>Affected</th>
-            <th style={{ padding: '12px 16px' }}>Status</th>
-            <th style={{ padding: '12px 16px' }}>Escalation</th>
-            <th style={{ padding: '12px 16px' }}>Officer</th>
+            <th style={{ padding: '14px 16px' }}>Priority</th>
+            <th style={{ padding: '14px 16px' }}>Ticket</th>
+            <th style={{ padding: '14px 16px' }}>Category</th>
+            <th style={{ padding: '14px 16px' }}>Location</th>
+            <th style={{ padding: '14px 16px' }}>Affected</th>
+            <th style={{ padding: '14px 16px' }}>Status</th>
+            <th style={{ padding: '14px 16px' }}>Escalation</th>
+            <th style={{ padding: '14px 16px' }}>Officer</th>
           </tr>
         </thead>
         <tbody>
