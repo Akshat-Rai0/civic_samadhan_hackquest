@@ -1,5 +1,6 @@
 import os
 import math
+from datetime import datetime
 from typing import Tuple, Optional, Dict, Any
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
@@ -88,6 +89,25 @@ def extract_exif_gps(image_path: str) -> Optional[Tuple[float, float]]:
     except Exception:
         pass
     
+    return None
+
+
+def extract_exif_capture_time(image_path: str) -> Optional[datetime]:
+    """Return the camera's original capture time, if present in EXIF metadata."""
+    if not image_path or not os.path.exists(image_path):
+        return None
+
+    try:
+        with Image.open(image_path) as image:
+            exif = image._getexif()
+            if not exif:
+                return None
+            captured_at = exif.get(36867) or exif.get(306)  # DateTimeOriginal or DateTime
+            if captured_at:
+                return datetime.strptime(str(captured_at), "%Y:%m:%d %H:%M:%S")
+    except (OSError, TypeError, ValueError):
+        pass
+
     return None
 
 def extract_geotag(image_meta: Any, device_lat: Optional[float] = None, device_lng: Optional[float] = None) -> Dict[str, Any]:

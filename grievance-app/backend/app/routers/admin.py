@@ -276,11 +276,7 @@ async def upload_completion_evidence(
         content = await file.read()
         f.write(content)
 
-    evidence = CompletionEvidence(
-        cluster_id=cluster_id,
-        image_url=file_path,
-        timestamp=datetime.utcnow()
-    )
+    evidence = CompletionEvidence(cluster_id=cluster_id, image_url=file_path)
     db.add(evidence)
     db.commit()
     db.refresh(evidence)
@@ -288,16 +284,21 @@ async def upload_completion_evidence(
     # Process with verification agent
     verification_result = process_completion(db, cluster_id, evidence.id)
 
-    # Set ticket to pending_confirmation for citizen verification
-    cluster.status = "pending_confirmation"
+    # Only valid, same-block, newer evidence that passes Moondream's recheck can
+    # move the ticket to citizen confirmation. Invalid evidence stays in progress.
+    cluster.status = "pending_confirmation" if verification_result["passed_automated_checks"] else "in_progress"
     db.commit()
 
-    notify_status_change(db, cluster_id, "pending_confirmation")
+    notify_status_change(db, cluster_id, cluster.status)
 
     return {
         "evidence_id": evidence.id,
         "verification": verification_result,
-        "message": "Completion evidence recorded. Awaiting citizen and admin verification."
+        "message": (
+            "Completion evidence passed automated checks. Awaiting citizen and admin verification."
+            if verification_result["passed_automated_checks"]
+            else "Completion evidence failed automated checks and requires a new field photo."
+        )
     }
 
 @router.post("/issues/{cluster_id}/close")
