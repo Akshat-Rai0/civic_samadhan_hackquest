@@ -60,7 +60,7 @@ echo "Starting backend on http://localhost:8000..."
 BACKEND_PID=$!
 
 # Start frontend development server
-echo "Starting frontend on http://localhost:5173..."
+echo "Starting frontend on http://localhost:3000..."
 (
     cd "${FRONTEND_DIR}"
     exec npm run dev -- --host
@@ -69,7 +69,7 @@ FRONTEND_PID=$!
 
 echo ""
 echo "Both services are running:"
-echo "  Citizen Portal & Admin: http://localhost:5173"
+echo "  Citizen Portal & Admin: http://localhost:3000"
 echo "  Backend API & Docs:     http://localhost:8000/docs"
 echo ""
 echo "Press Ctrl+C to stop both servers."
