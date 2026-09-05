@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { uploadIssue, CIVIC_ZONES } from '../../api/client';
+import { uploadIssue } from '../../api/client';
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -11,7 +11,6 @@ export default function Upload() {
   const [description, setDescription] = useState('');
   const [deviceCoords, setDeviceCoords] = useState({ lat: 28.6139, lng: 77.2090 });
   const [geoStatus, setGeoStatus] = useState('detecting'); // 'detecting' | 'detected' | 'fallback'
-  const [selectedZoneId, setSelectedZoneId] = useState('central');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -36,15 +35,6 @@ export default function Upload() {
       setGeoStatus('fallback');
     }
   }, []);
-
-  const handleZoneChange = (zoneId) => {
-    setSelectedZoneId(zoneId);
-    const found = CIVIC_ZONES.find((z) => z.id === zoneId);
-    if (found) {
-      setDeviceCoords({ lat: found.lat, lng: found.lng });
-      setGeoStatus('manual');
-    }
-  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -195,28 +185,6 @@ export default function Upload() {
 
             <div className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '8px' }}>
               Coordinates: <strong>{deviceCoords.lat}° N, {deviceCoords.lng}° E</strong>
-            </div>
-
-            <div style={{ marginTop: '8px' }}>
-              <label
-                htmlFor="zone-select"
-                style={{ fontSize: '0.75rem', color: 'var(--color-muted)', display: 'block', marginBottom: '3px' }}
-              >
-                Municipal Ward / Area:
-              </label>
-              <select
-                id="zone-select"
-                className="form-input"
-                style={{ fontSize: '0.825rem', padding: '6px 10px', height: 'auto' }}
-                value={selectedZoneId}
-                onChange={(e) => handleZoneChange(e.target.value)}
-              >
-                {CIVIC_ZONES.map((zone) => (
-                  <option key={zone.id} value={zone.id}>
-                    {zone.name} ({zone.postal_code})
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
 

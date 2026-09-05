@@ -48,14 +48,6 @@ async function apiRequest(method, path, body = null, isFormData = false) {
   return response.json();
 }
 
-export const CIVIC_ZONES = [
-  { id: 'central', name: 'Central Zone (Connaught Place)', lat: 28.6139, lng: 77.2090, postal_code: '110001' },
-  { id: 'south', name: 'South Zone (Hauz Khas / Saket)', lat: 28.5494, lng: 77.2001, postal_code: '110016' },
-  { id: 'north', name: 'North Zone (Civil Lines)', lat: 28.6812, lng: 77.2228, postal_code: '110054' },
-  { id: 'east', name: 'East Zone (Mayur Vihar)', lat: 28.6083, lng: 77.2958, postal_code: '110091' },
-  { id: 'west', name: 'West Zone (Rajouri Garden)', lat: 28.6415, lng: 77.1209, postal_code: '110027' },
-];
-
 // Auth endpoints
 export async function login(mock_id_number, otp = '123456') {
   const data = await apiRequest('POST', '/auth/login', { mock_id_number, otp });
@@ -173,4 +165,3 @@ export async function approveContractorEmail(draftId, adminId = 1) {
 export async function sendContractorEmail(draftId) {
   return apiRequest('POST', '/contractor-email/send', { draft_id: draftId });
 }
-
