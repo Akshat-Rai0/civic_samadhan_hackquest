@@ -41,7 +41,7 @@ export default function Queue() {
       {/* Top Welcome / Title Header */}
       <div className="flex items-center justify-between mb-md">
         <div>
-          <h1>Municipal Triage Queue</h1>
+          <h1>Admin Priority Queue</h1>
           <p className="text-muted" style={{ margin: 0 }}>
             Automated location clustering and vision-based defect ranking for department triage.
           </p>
