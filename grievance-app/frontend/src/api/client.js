@@ -138,6 +138,10 @@ export async function getHeatmapData() {
   return apiRequest('GET', '/admin/heatmap');
 }
 
+export async function askAuthorityAssistant(message, history = []) {
+  return apiRequest('POST', '/admin/chat', { message, history });
+}
+
 export async function dispatchContractor(clusterId) {
   return apiRequest('POST', `/admin/issues/${clusterId}/dispatch`);
 }

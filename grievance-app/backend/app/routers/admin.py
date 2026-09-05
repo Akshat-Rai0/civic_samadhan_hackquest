@@ -1,8 +1,9 @@
 import os
 import uuid
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Literal
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.config import get_settings
@@ -15,9 +16,33 @@ from app.schemas.issue import HeatmapPoint
 from app.services.priority_service import BASE_SEVERITY, affected_count_multiplier, compute_priority
 from app.agents.communication_agent import notify_status_change
 from app.agents.verification_agent import process_completion, close_ticket, reopen_ticket
+from app.services.admin_chat_service import ask_authority_assistant
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 settings = get_settings()
+
+
+class AdminChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class AdminChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+    history: List[AdminChatMessage] = Field(default_factory=list, max_length=10)
+
+
+@router.post("/chat")
+def chat_with_authority_assistant(payload: AdminChatRequest, db: Session = Depends(get_db)):
+    """Answer an authority question using the current issue database through read-only tools."""
+    try:
+        return ask_authority_assistant(
+            db,
+            payload.message,
+            [message.model_dump() for message in payload.history],
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 @router.get("/queue")
 def get_queue(
