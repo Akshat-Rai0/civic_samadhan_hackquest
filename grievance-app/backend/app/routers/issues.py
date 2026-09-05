@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 from typing import Optional, List
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -19,10 +20,14 @@ from app.schemas.issue import (
 )
 from app.routers.auth import get_current_user
 from app.tasks.ingest_tasks import process_upload, run_process_upload, run_process_confirmed_submission
-from app.agents.classification_agent import classify_issue, match_authority
+from app.agents.classification_agent import classify_issue, match_authority, reverse_geocode
 
 router = APIRouter(prefix="/api/issues", tags=["Issues"])
 settings = get_settings()
+
+class ConfirmIssueRequest(BaseModel):
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 @router.post("/upload")
 async def upload_issue(
@@ -53,12 +58,18 @@ async def upload_issue(
         db.add(user)
         db.commit()
 
+    # Resolve geotag immediately (EXIF GPS -> Device GPS -> Civic default)
+    from app.services.geotag_service import resolve_location
+    resolved_lat, resolved_lng, geo_src = resolve_location(file_path, device_lat, device_lng)
+
     # Create unclustered issue image
     image_record = IssueImage(
         uploaded_by_user_id=user_id,
         image_url=file_path,
-        device_lat=device_lat,
-        device_lng=device_lng
+        device_lat=resolved_lat,
+        device_lng=resolved_lng,
+        exif_lat=resolved_lat if geo_src == "exif" else None,
+        exif_lng=resolved_lng if geo_src == "exif" else None
     )
     db.add(image_record)
     db.commit()
@@ -98,22 +109,38 @@ async def get_preview(
         except Exception:
             detected = [image.moondream_output]
 
+    lat = image.device_lat or image.exif_lat or 28.6139
+    lng = image.device_lng or image.exif_lng or 77.2090
+    geo_info = reverse_geocode(lat, lng)
+
     classification = classify_issue("", detected)
-    dept_id = match_authority("110001", classification["category"])
+    dept_id = match_authority(geo_info.get("postal_code", "110001"), classification["category"])
     dept = db.query(Department).filter(Department.id == dept_id).first()
     department_name = dept.name if dept else f"{classification['category'].capitalize()} Department"
+
+    source_label = "EXIF metadata" if image.exif_lat else ("Device GPS" if image.device_lat else "Municipal Ward Pin")
 
     return {
         "image_id": image.id,
         "detected_issues": detected,
         "category": classification["category"],
         "severity_hint": classification["severity_hint"],
-        "routed_department": department_name
+        "routed_department": department_name,
+        "geotag": {
+            "lat": round(lat, 6),
+            "lng": round(lng, 6),
+            "zone": geo_info.get("zone", "Central Zone"),
+            "postal_code": geo_info.get("postal_code", "110001"),
+            "ward": geo_info.get("ward", "Ward 42, Connaught Place"),
+            "city": geo_info.get("city", "New Delhi"),
+            "source": source_label
+        }
     }
 
 @router.post("/{image_id}/confirm")
 async def confirm_issue(
     image_id: int,
+    confirm_data: Optional[ConfirmIssueRequest] = None,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -126,7 +153,9 @@ async def confirm_issue(
         run_process_upload(image_id)
         db.refresh(image)
 
-    cluster_id = run_process_confirmed_submission(image_id)
+    override_lat = confirm_data.lat if confirm_data else None
+    override_lng = confirm_data.lng if confirm_data else None
+    cluster_id = run_process_confirmed_submission(image_id, override_lat=override_lat, override_lng=override_lng)
     return {
         "cluster_id": cluster_id,
         "status": "confirmed",

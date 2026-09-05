@@ -11,6 +11,9 @@ export default function Confirm() {
   const [previewData, setPreviewData] = useState(null);
   const [error, setError] = useState(null);
 
+  const [coords, setCoords] = useState(null);
+  const [selectedZone, setSelectedZone] = useState(null);
+
   useEffect(() => {
     let timer = null;
 
@@ -18,6 +21,10 @@ export default function Confirm() {
       try {
         const data = await getPreview(imageId);
         setPreviewData(data);
+        if (data.geotag) {
+          setCoords({ lat: data.geotag.lat, lng: data.geotag.lng });
+          setSelectedZone(data.geotag.zone);
+        }
         setLoading(false);
       } catch {
         // Retry polling if still being analyzed
@@ -36,7 +43,7 @@ export default function Confirm() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await confirmIssue(imageId);
+      const res = await confirmIssue(imageId, coords);
       navigate(`/track/${res.cluster_id}`);
     } catch (err) {
       setError(err.message || 'Failed to submit confirmation. Please try again.');
@@ -100,12 +107,46 @@ export default function Confirm() {
               </div>
             </div>
 
+            {/* Geotagged Municipal Location Card */}
+            <div
+              className="card"
+              style={{
+                backgroundColor: 'var(--color-bg)',
+                padding: 'var(--spacing-md)',
+                marginBottom: 'var(--spacing-md)',
+                border: '1px solid var(--color-border)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>📍</span>
+                  <span>Geotagged Municipal Location</span>
+                </div>
+                <span className="badge badge-green" style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
+                  {previewData?.geotag?.source || 'Verified Geotag'}
+                </span>
+              </div>
+
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text)', marginTop: '4px' }}>
+                {previewData?.geotag?.ward || previewData?.geotag?.zone || 'Central Zone'}
+              </div>
+
+              <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '2px' }}>
+                Postal PIN: <strong>{previewData?.geotag?.postal_code || '110001'}</strong> • City: <strong>{previewData?.geotag?.city || 'New Delhi'}</strong>
+              </div>
+
+              <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                Coordinates: <code>{coords?.lat || previewData?.geotag?.lat}° N, {coords?.lng || previewData?.geotag?.lng}° E</code>
+              </div>
+            </div>
+
             <div
               className="card"
               style={{
                 backgroundColor: 'var(--color-bg)',
                 padding: 'var(--spacing-md)',
                 marginBottom: 'var(--spacing-lg)',
+                border: '1px solid var(--color-border)',
               }}
             >
               <div className="text-muted" style={{ fontSize: '0.8rem' }}>Routing target:</div>

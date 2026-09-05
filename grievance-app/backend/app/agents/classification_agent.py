@@ -47,10 +47,49 @@ def extract_geotag(image_path: str, device_lat: float, device_lng: float) -> dic
     }
 
 def reverse_geocode(lat: float, lng: float) -> dict:
-    return {
-        "postal_code": "100001",
-        "zone": "Central"
-    }
+    if lat is None or lng is None:
+        return {
+            "postal_code": "110001",
+            "zone": "Central Zone",
+            "ward": "Ward 42, Connaught Place",
+            "city": "New Delhi"
+        }
+    
+    if lat > 28.66:
+        return {
+            "postal_code": "110054",
+            "zone": "North Zone",
+            "ward": "Ward 18, Civil Lines",
+            "city": "Delhi"
+        }
+    elif lat < 28.56:
+        return {
+            "postal_code": "110016",
+            "zone": "South Zone",
+            "ward": "Ward 64, Hauz Khas",
+            "city": "New Delhi"
+        }
+    elif lng > 77.26:
+        return {
+            "postal_code": "110091",
+            "zone": "East Zone",
+            "ward": "Ward 85, Mayur Vihar",
+            "city": "Delhi"
+        }
+    elif lng < 77.16:
+        return {
+            "postal_code": "110027",
+            "zone": "West Zone",
+            "ward": "Ward 31, Rajouri Garden",
+            "city": "New Delhi"
+        }
+    else:
+        return {
+            "postal_code": "110001",
+            "zone": "Central Zone",
+            "ward": "Ward 42, Connaught Place",
+            "city": "New Delhi"
+        }
 
 def match_authority(postal_code: str, category: str) -> int:
     category_to_dept = {

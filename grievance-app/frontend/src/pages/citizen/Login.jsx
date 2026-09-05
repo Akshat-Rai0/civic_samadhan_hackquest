@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login, register } from '../../api/client';
+import { login, register, logoutApi } from '../../api/client';
+import { useSession } from '../../context/SessionContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { citizen, sessionId, isAuthenticated, loginCitizen, closeSession } = useSession();
+
   const [name, setName] = useState('Ananya Sharma');
   const [mockId, setMockId] = useState('548291034821');
   const [otpStep, setOtpStep] = useState(false);
@@ -36,13 +39,21 @@ export default function Login() {
       } catch {
         // User may already be registered, proceed to login
       }
-      await login(mockId, otp);
+      const data = await login(mockId, otp);
+      if (data && data.session_id) {
+        loginCitizen(data.access_token, data.session_id, data.user);
+      }
       navigate('/upload');
     } catch (err) {
       setError(err.message || 'Login failed. Please check the OTP code.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSwitchUser = async () => {
+    await logoutApi();
+    closeSession();
   };
 
   return (
@@ -55,6 +66,41 @@ export default function Login() {
             Simulated login for prototype. No real identity verification.
           </p>
         </div>
+
+        {isAuthenticated && (
+          <div
+            className="notice notice-info"
+            style={{
+              marginBottom: 'var(--spacing-md)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div>
+              <strong>Active Citizen Session Detected:</strong>
+              <div style={{ marginTop: '4px', fontSize: '0.9rem' }}>
+                Signed in as <strong>{citizen?.name}</strong> (Session ID: <code>{sessionId}</code>)
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => navigate('/upload')}
+              >
+                Continue to Report Issue
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleSwitchUser}
+              >
+                Close Session & Switch User
+              </button>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="notice notice-warning" style={{ marginBottom: 'var(--spacing-md)' }}>

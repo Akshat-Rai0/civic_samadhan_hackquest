@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { uploadIssue } from '../../api/client';
+import { uploadIssue, CIVIC_ZONES } from '../../api/client';
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -9,28 +9,42 @@ export default function Upload() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [description, setDescription] = useState('');
-  const [deviceCoords, setDeviceCoords] = useState({ lat: null, lng: null });
+  const [deviceCoords, setDeviceCoords] = useState({ lat: 28.6139, lng: 77.2090 });
+  const [geoStatus, setGeoStatus] = useState('detecting'); // 'detecting' | 'detected' | 'fallback'
+  const [selectedZoneId, setSelectedZoneId] = useState('central');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Silently capture device coordinates if user allows
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setDeviceCoords({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
+            lat: Number(pos.coords.latitude.toFixed(6)),
+            lng: Number(pos.coords.longitude.toFixed(6)),
           });
+          setGeoStatus('detected');
         },
         () => {
-          // Fallback to default location if denied
+          // Fallback to default Central Delhi location
           setDeviceCoords({ lat: 28.6139, lng: 77.2090 });
+          setGeoStatus('fallback');
         },
-        { enableHighAccuracy: true, timeout: 5000 }
+        { enableHighAccuracy: true, timeout: 6000 }
       );
+    } else {
+      setGeoStatus('fallback');
     }
   }, []);
+
+  const handleZoneChange = (zoneId) => {
+    setSelectedZoneId(zoneId);
+    const found = CIVIC_ZONES.find((z) => z.id === zoneId);
+    if (found) {
+      setDeviceCoords({ lat: found.lat, lng: found.lng });
+      setGeoStatus('manual');
+    }
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -54,10 +68,9 @@ export default function Upload() {
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
-      if (deviceCoords.lat && deviceCoords.lng) {
-        formData.append('device_lat', deviceCoords.lat);
-        formData.append('device_lng', deviceCoords.lng);
-      }
+      formData.append('device_lat', deviceCoords.lat);
+      formData.append('device_lng', deviceCoords.lng);
+
       if (description.trim()) {
         formData.append('description', description.trim());
       }
@@ -145,6 +158,67 @@ export default function Upload() {
               Choose different photo
             </button>
           )}
+
+          {/* Location Geotag Status */}
+          <div
+            style={{
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius)',
+              padding: '12px 14px',
+              backgroundColor: 'var(--color-bg)',
+              marginBottom: 'var(--spacing-md)',
+              fontSize: '0.85rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>📍</span>
+                <span>Municipal Location Geotag</span>
+              </div>
+              <span
+                className={`badge ${
+                  geoStatus === 'detected'
+                    ? 'badge-green'
+                    : geoStatus === 'detecting'
+                    ? 'badge-blue'
+                    : 'badge-muted'
+                }`}
+                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+              >
+                {geoStatus === 'detected'
+                  ? 'GPS Captured'
+                  : geoStatus === 'detecting'
+                  ? 'Detecting GPS...'
+                  : 'Municipal Ward Pin'}
+              </span>
+            </div>
+
+            <div className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '8px' }}>
+              Coordinates: <strong>{deviceCoords.lat}° N, {deviceCoords.lng}° E</strong>
+            </div>
+
+            <div style={{ marginTop: '8px' }}>
+              <label
+                htmlFor="zone-select"
+                style={{ fontSize: '0.75rem', color: 'var(--color-muted)', display: 'block', marginBottom: '3px' }}
+              >
+                Municipal Ward / Area:
+              </label>
+              <select
+                id="zone-select"
+                className="form-input"
+                style={{ fontSize: '0.825rem', padding: '6px 10px', height: 'auto' }}
+                value={selectedZoneId}
+                onChange={(e) => handleZoneChange(e.target.value)}
+              >
+                {CIVIC_ZONES.map((zone) => (
+                  <option key={zone.id} value={zone.id}>
+                    {zone.name} ({zone.postal_code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           <div className="form-group">
             <label htmlFor="desc">Describe the issue (optional)</label>

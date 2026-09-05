@@ -32,8 +32,10 @@ def run_process_upload(image_id: int):
         if coords:
             image.exif_lat, image.exif_lng = coords
         else:
-            image.exif_lat = image.device_lat
-            image.exif_lng = image.device_lng
+            image.exif_lat = image.device_lat or 28.6139
+            image.exif_lng = image.device_lng or 77.2090
+            image.device_lat = image.exif_lat
+            image.device_lng = image.exif_lng
 
         detected = analyze_image(file_path)
         image.moondream_output = json.dumps(detected)
@@ -46,7 +48,7 @@ def run_process_upload(image_id: int):
 def process_upload(image_id: int):
     run_process_upload(image_id)
 
-def run_process_confirmed_submission(image_id: int) -> int:
+def run_process_confirmed_submission(image_id: int, override_lat: float = None, override_lng: float = None) -> int:
     """Synchronous implementation of confirmed submission."""
     db = SessionLocal()
     try:
@@ -66,11 +68,19 @@ def run_process_confirmed_submission(image_id: int) -> int:
         severity_hint = classification["severity_hint"]
         confidence = classification["confidence"]
 
-        lat = image.exif_lat or image.device_lat or 28.6139
-        lng = image.exif_lng or image.device_lng or 77.2090
+        if override_lat is not None and override_lng is not None:
+            lat = float(override_lat)
+            lng = float(override_lng)
+            image.device_lat = lat
+            image.device_lng = lng
+            image.exif_lat = lat
+            image.exif_lng = lng
+        else:
+            lat = image.exif_lat or image.device_lat or 28.6139
+            lng = image.exif_lng or image.device_lng or 77.2090
 
         geo_info = reverse_geocode(lat, lng)
-        zone = geo_info.get("zone", "Central")
+        zone = geo_info.get("zone", "Central Zone")
         postal_code = geo_info.get("postal_code", "110001")
         department_id = match_authority(postal_code, category)
 

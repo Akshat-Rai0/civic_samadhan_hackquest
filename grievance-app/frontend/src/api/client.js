@@ -48,6 +48,14 @@ async function apiRequest(method, path, body = null, isFormData = false) {
   return response.json();
 }
 
+export const CIVIC_ZONES = [
+  { id: 'central', name: 'Central Zone (Connaught Place)', lat: 28.6139, lng: 77.2090, postal_code: '110001' },
+  { id: 'south', name: 'South Zone (Hauz Khas / Saket)', lat: 28.5494, lng: 77.2001, postal_code: '110016' },
+  { id: 'north', name: 'North Zone (Civil Lines)', lat: 28.6812, lng: 77.2228, postal_code: '110054' },
+  { id: 'east', name: 'East Zone (Mayur Vihar)', lat: 28.6083, lng: 77.2958, postal_code: '110091' },
+  { id: 'west', name: 'West Zone (Rajouri Garden)', lat: 28.6415, lng: 77.1209, postal_code: '110027' },
+];
+
 // Auth endpoints
 export async function login(mock_id_number, otp = '123456') {
   const data = await apiRequest('POST', '/auth/login', { mock_id_number, otp });
@@ -55,6 +63,16 @@ export async function login(mock_id_number, otp = '123456') {
     setToken(data.access_token);
   }
   return data;
+}
+
+export async function logoutApi() {
+  try {
+    await apiRequest('POST', '/auth/logout');
+  } catch {
+    // Ignore network error on logout
+  } finally {
+    clearToken();
+  }
 }
 
 export async function register(mock_id_number, name) {
@@ -74,8 +92,9 @@ export async function getPreview(imageId) {
   return apiRequest('GET', `/issues/${imageId}/preview`);
 }
 
-export async function confirmIssue(imageId) {
-  return apiRequest('POST', `/issues/${imageId}/confirm`);
+export async function confirmIssue(imageId, coords = null) {
+  const body = coords ? { lat: coords.lat, lng: coords.lng } : null;
+  return apiRequest('POST', `/issues/${imageId}/confirm`, body);
 }
 
 export async function getMyIssues() {
