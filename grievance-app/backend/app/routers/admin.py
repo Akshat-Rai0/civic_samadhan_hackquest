@@ -193,29 +193,46 @@ def assign_officer(
 
 @router.get("/heatmap")
 def get_heatmap_data(db: Session = Depends(get_db)):
+    from app.services.clustering_service import update_hotspot_tiers
+    update_hotspot_tiers(db)
+    db.commit()
+
     clusters = db.query(IssueCluster).filter(
         IssueCluster.status.notin_(["closed"])
     ).all()
 
     points = []
     for c in clusters:
-        lat = c.lat or 28.6139
-        lng = c.lng or 77.2090
+        if c.lat is None or c.lng is None:
+            continue
+
+        dept_name = "Unassigned Department"
+        if c.department_id:
+            dept = db.query(Department).filter(Department.id == c.department_id).first()
+            if dept:
+                dept_name = dept.name
+
         points.append({
-            "lat": lat,
-            "lng": lng,
+            "id": c.id,
+            "ticket_id": f"GR-{c.id}",
+            "lat": c.lat,
+            "lng": c.lng,
             "priority_score": c.priority_score,
             "category": c.category or "General",
-            "ticket_id": f"GR-{c.id}",
-            "affected_count": c.affected_count
+            "affected_count": c.affected_count or 1,
+            "hotspot_tier": c.hotspot_tier,
+            "postal_code": c.postal_code,
+            "department_id": c.department_id,
+            "department_name": dept_name,
+            "status": c.status
         })
 
     # If empty, provide representative points for demo
     if not points:
         points = [
-            {"lat": 28.6139, "lng": 77.2090, "priority_score": 85.0, "category": "roads", "ticket_id": "GR-101", "affected_count": 4},
-            {"lat": 28.6200, "lng": 77.2150, "priority_score": 70.0, "category": "electrical", "ticket_id": "GR-102", "affected_count": 2},
-            {"lat": 28.6080, "lng": 77.2020, "priority_score": 60.0, "category": "sanitation", "ticket_id": "GR-103", "affected_count": 1},
+            {"id": 101, "lat": 28.6139, "lng": 77.2090, "priority_score": 85.0, "category": "roads", "ticket_id": "GR-101", "affected_count": 4, "hotspot_tier": "high", "department_name": "Roads & Infrastructure"},
+            {"id": 102, "lat": 28.6200, "lng": 77.2150, "priority_score": 70.0, "category": "electrical", "ticket_id": "GR-102", "affected_count": 2, "hotspot_tier": "medium", "department_name": "Electrical Department"},
+            {"id": 103, "lat": 28.6080, "lng": 77.2020, "priority_score": 40.0, "category": "sanitation", "ticket_id": "GR-103", "affected_count": 2, "hotspot_tier": "low", "department_name": "Sanitation"},
         ]
 
     return points

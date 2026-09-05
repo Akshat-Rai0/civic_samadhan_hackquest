@@ -47,6 +47,13 @@ def seed_initial_data():
 
     db = SessionLocal()
     try:
+        try:
+            from sqlalchemy import text
+            db.execute(text("ALTER TABLE issue_clusters ADD COLUMN hotspot_tier VARCHAR(20)"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
         departments = [
             (1, "Electrical Department"),
             (2, "Roads & Infrastructure"),

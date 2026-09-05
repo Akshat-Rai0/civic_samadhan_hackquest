@@ -109,16 +109,22 @@ async def get_preview(
         except Exception:
             detected = [image.moondream_output]
 
-    lat = image.device_lat or image.exif_lat or 28.6139
-    lng = image.device_lng or image.exif_lng or 77.2090
-    geo_info = reverse_geocode(lat, lng)
+    lat = image.exif_lat if image.exif_lat is not None else image.device_lat
+    lng = image.exif_lng if image.exif_lng is not None else image.device_lng
+
+    if lat is not None and lng is not None:
+        geo_info = reverse_geocode(lat, lng)
+        source_label = "EXIF metadata" if image.exif_lat is not None else "Device GPS"
+        prompt_manual = False
+    else:
+        geo_info = {"postal_code": None, "zone": None, "ward": None, "city": None}
+        source_label = "manual_required"
+        prompt_manual = True
 
     classification = classify_issue("", detected)
-    dept_id = match_authority(geo_info.get("postal_code", "110001"), classification["category"])
+    dept_id = match_authority(geo_info.get("postal_code") or "110001", classification["category"])
     dept = db.query(Department).filter(Department.id == dept_id).first()
     department_name = dept.name if dept else f"{classification['category'].capitalize()} Department"
-
-    source_label = "EXIF metadata" if image.exif_lat else ("Device GPS" if image.device_lat else "Municipal Ward Pin")
 
     return {
         "image_id": image.id,
@@ -127,13 +133,14 @@ async def get_preview(
         "severity_hint": classification["severity_hint"],
         "routed_department": department_name,
         "geotag": {
-            "lat": round(lat, 6),
-            "lng": round(lng, 6),
-            "zone": geo_info.get("zone", "Central Zone"),
-            "postal_code": geo_info.get("postal_code", "110001"),
-            "ward": geo_info.get("ward", "Ward 42, Connaught Place"),
-            "city": geo_info.get("city", "New Delhi"),
-            "source": source_label
+            "lat": round(lat, 6) if lat is not None else None,
+            "lng": round(lng, 6) if lng is not None else None,
+            "zone": geo_info.get("zone"),
+            "postal_code": geo_info.get("postal_code"),
+            "ward": geo_info.get("ward"),
+            "city": geo_info.get("city"),
+            "source": source_label,
+            "prompt_manual_pin": prompt_manual
         }
     }
 
