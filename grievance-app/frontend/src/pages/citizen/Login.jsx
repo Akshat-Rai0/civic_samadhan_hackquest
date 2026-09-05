@@ -60,11 +60,7 @@ export default function Login() {
     <div className="container-narrow" style={{ marginTop: 'var(--spacing-xl)' }}>
       <div className="card">
         <div style={{ marginBottom: 'var(--spacing-md)' }}>
-          <span className="badge badge-blue">Nagar Seva Citizen Portal</span>
-          <h1 style={{ marginTop: 'var(--spacing-sm)', marginBottom: '4px' }}>Sign in</h1>
-          <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-            Simulated login for prototype. No real identity verification.
-          </p>
+          <h1 style={{ marginTop: 0, marginBottom: '4px' }}>Sign in</h1>
         </div>
 
         {isAuthenticated && (
@@ -124,7 +120,7 @@ export default function Login() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="mockid">12-digit ID number</label>
+              <label htmlFor="mockid">Enter your Aadhaar number: </label>
               <input
                 id="mockid"
                 type="text"
@@ -136,7 +132,7 @@ export default function Login() {
                 required
               />
               <div className="form-hint">
-                Use any 12 digits for testing. Duplicate reports from the same ID update existing tickets.
+                Enter your 12-digit Aadhaar number for identity registration.
               </div>
             </div>
 

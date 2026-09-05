@@ -70,18 +70,20 @@ function NavigationHeader() {
               width: '34px',
               height: '34px',
               borderRadius: '50%',
-              backgroundColor: '#FFFFFF',
-              border: '2px solid var(--color-blue)',
-              color: 'var(--color-blue)',
+              overflow: 'hidden',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '1rem',
-              boxShadow: '0 0 0 2px var(--color-orange-light)',
+              flexDirection: 'column',
+              boxShadow: '0 0 0 1.5px var(--color-border)',
+              position: 'relative',
+              flexShrink: 0,
             }}
+            title="CivicSamadhaan"
           >
-            ⚙
+            <div style={{ flex: 1, backgroundColor: '#FF9933' }} />
+            <div style={{ flex: 1, backgroundColor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', border: '1.5px solid #000080' }} />
+            </div>
+            <div style={{ flex: 1, backgroundColor: '#138808' }} />
           </div>
           <div>
             <div
@@ -91,12 +93,13 @@ function NavigationHeader() {
                 fontSize: '1.15rem',
                 color: 'var(--color-heading)',
                 lineHeight: 1.1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              CivicSamadhaan
-            </div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--color-muted)', letterSpacing: '0.02em' }}>
-              Nagar Seva Redressal
+              <span>CivicSamadhaan</span>
+              <span style={{ fontSize: '0.85rem', color: 'var(--color-muted)', fontWeight: 500 }}>| नागरिक समाधान</span>
             </div>
           </div>
         </Link>
@@ -114,7 +117,7 @@ function NavigationHeader() {
             to="/admin"
             className={`nav-tab-link ${isAdmin && location.pathname === '/admin' ? 'active' : ''}`}
           >
-            Admin Queue
+            Authority Dashboard
           </Link>
 
           <Link
@@ -259,7 +262,7 @@ export default function App() {
           }}
         >
           <div className="container">
-            Nagar Seva - Municipal Corporation Grievance Redressal System (Prototype)
+            CivicSamadhaan — Empowering Citizens, Accelerating Solutions
           </div>
         </footer>
       </div>

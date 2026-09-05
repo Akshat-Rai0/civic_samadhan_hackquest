@@ -87,9 +87,6 @@ export default function Upload() {
         <div style={{ marginBottom: 'var(--spacing-md)' }}>
           <span className="badge badge-blue">Step 2 of 4</span>
           <h1 style={{ marginTop: 'var(--spacing-xs)', marginBottom: '4px' }}>Report an issue</h1>
-          <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-            Take a photo of the problem. Geotagging and municipal classification will be applied automatically.
-          </p>
         </div>
 
         {error && <div className="notice notice-warning">{error}</div>}
@@ -131,9 +128,6 @@ export default function Upload() {
               <div style={{ textAlign: 'center', padding: 'var(--spacing-md)' }}>
                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📷</div>
                 <div style={{ fontWeight: 600, color: 'var(--color-text)' }}>Tap to capture or select photo</div>
-                <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '4px' }}>
-                  Streetlights, potholes, garbage piles, open drains
-                </div>
               </div>
             )}
           </div>

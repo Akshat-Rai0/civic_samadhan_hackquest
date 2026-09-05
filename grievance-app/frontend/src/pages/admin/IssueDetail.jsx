@@ -154,7 +154,7 @@ export default function IssueDetail() {
             onClick={() => navigate('/admin')}
             style={{ marginBottom: '8px' }}
           >
-            ← Back to Queue
+            ← Back to Dashboard
           </button>
           <div className="flex items-center gap-sm">
             <h1 style={{ margin: 0 }}>{issue.ticket_id}</h1>
