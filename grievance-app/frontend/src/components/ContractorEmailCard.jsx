@@ -72,9 +72,7 @@ export default function ContractorEmailCard({ clusterId }) {
     );
   }
 
-  if (emails.length === 0) {
-    return null; // No drafts — nothing to show
-  }
+
 
   const statusBadgeClass = (status) => {
     switch (status) {
@@ -100,7 +98,13 @@ export default function ContractorEmailCard({ clusterId }) {
       {notice && <div className="notice notice-success">{notice}</div>}
       {error && <div className="notice notice-warning">{error}</div>}
 
-      <div className="flex flex-col gap-sm" style={{ marginTop: '12px' }}>
+      {emails.length === 0 ? (
+        <p className="text-muted" style={{ margin: '12px 0 0 0', fontSize: '0.85rem' }}>
+          No contractor email drafts generated yet. Assign or reassign an officer using the sidebar to trigger automated email drafting.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-sm" style={{ marginTop: '12px' }}>
+
         {emails.map((email) => (
           <div
             key={email.id}
@@ -224,6 +228,8 @@ export default function ContractorEmailCard({ clusterId }) {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
+

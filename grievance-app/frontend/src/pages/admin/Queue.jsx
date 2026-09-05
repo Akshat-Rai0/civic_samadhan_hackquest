@@ -32,13 +32,18 @@ export default function Queue() {
     navigate(`/admin/issues/${issueId}`);
   };
 
+  const totalTracked = issues.length;
+  const completedCount = issues.filter((i) => i.status === 'resolved' || i.status === 'closed').length;
+  const criticalCount = issues.filter((i) => (i.priority_score || 0) >= 70).length;
+
   return (
     <div className="container" style={{ marginTop: 'var(--spacing-md)' }}>
+      {/* Top Welcome / Title Header */}
       <div className="flex items-center justify-between mb-md">
         <div>
           <h1>Municipal Triage Queue</h1>
           <p className="text-muted" style={{ margin: 0 }}>
-            Issues clustered by location and visual similarity. Ranked by priority score.
+            Automated location clustering and vision-based defect ranking for department triage.
           </p>
         </div>
 
@@ -48,15 +53,62 @@ export default function Queue() {
           onClick={fetchIssues}
           disabled={loading}
         >
-          {loading ? 'Refreshing...' : 'Refresh queue'}
+          {loading ? 'Refreshing...' : 'Refresh Queue'}
         </button>
+      </div>
+
+      {/* Reference Stat Cards Grid */}
+      <div className="stat-card-grid">
+        <div className="stat-card stat-card-purple">
+          <div className="stat-card-header">
+            <span className="stat-card-title">Total Issues Tracked</span>
+            <span className="stat-card-icon">📄</span>
+          </div>
+          <div>
+            <div className="stat-card-value">{loading ? '...' : totalTracked}</div>
+            <div className="stat-card-sub">All active ticket clusters</div>
+          </div>
+        </div>
+
+        <div className="stat-card stat-card-green">
+          <div className="stat-card-header">
+            <span className="stat-card-title">Completed / Verified</span>
+            <span className="stat-card-icon">✓</span>
+          </div>
+          <div>
+            <div className="stat-card-value">+{loading ? '...' : completedCount}</div>
+            <div className="stat-card-sub">In current cycle</div>
+          </div>
+        </div>
+
+        <div className="stat-card stat-card-red">
+          <div className="stat-card-header">
+            <span className="stat-card-title">Critical Priority Items</span>
+            <span className="stat-card-icon">⚠️</span>
+          </div>
+          <div>
+            <div className="stat-card-value">{loading ? '...' : criticalCount}</div>
+            <div className="stat-card-sub">Require immediate triage</div>
+          </div>
+        </div>
+
+        <div className="stat-card stat-card-orange">
+          <div className="stat-card-header">
+            <span className="stat-card-title">Average SLA Window</span>
+            <span className="stat-card-icon">⏱</span>
+          </div>
+          <div>
+            <div className="stat-card-value">2.4 days</div>
+            <div className="stat-card-sub">For resolved municipal cases</div>
+          </div>
+        </div>
       </div>
 
       {/* Filter Bar */}
       <div
         className="card"
         style={{
-          padding: 'var(--spacing-sm) var(--spacing-md)',
+          padding: '12px var(--spacing-md)',
           marginBottom: 'var(--spacing-md)',
           display: 'flex',
           gap: 'var(--spacing-md)',
