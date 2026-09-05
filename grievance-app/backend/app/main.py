@@ -60,6 +60,7 @@ def seed_initial_data():
         for column_sql in (
             "ALTER TABLE issue_clusters ADD COLUMN issue_type VARCHAR(100)",
             "ALTER TABLE issue_clusters ADD COLUMN priority_override FLOAT",
+            "ALTER TABLE issue_images ADD COLUMN description TEXT",
         ):
             try:
                 db.execute(text(column_sql))

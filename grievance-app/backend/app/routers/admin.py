@@ -30,6 +30,8 @@ def get_queue(
         query = query.filter(IssueCluster.department_id == department_id)
     if status_filter:
         query = query.filter(IssueCluster.status == status_filter)
+    else:
+        query = query.filter(IssueCluster.status.notin_(["closed", "resolved"]))
 
     clusters = query.order_by(IssueCluster.priority_score.desc()).all()
     now = datetime.utcnow()
@@ -139,8 +141,8 @@ def get_issue_detail(cluster_id: int, db: Session = Depends(get_db)):
         "department_name": dept.name if dept else "General Municipal",
         "zone": cluster.zone,
         "postal_code": cluster.postal_code,
-        "lat": cluster.lat or 28.6139,
-        "lng": cluster.lng or 77.2090,
+        "lat": cluster.lat,
+        "lng": cluster.lng,
         "affected_count": cluster.affected_count,
         "priority_score": cluster.priority_score,
         "priority_override": cluster.priority_override,
@@ -227,6 +229,14 @@ def assign_officer(
     cluster = db.query(IssueCluster).filter(IssueCluster.id == cluster_id).first()
     if not cluster:
         raise HTTPException(status_code=404, detail="Issue cluster not found")
+    if cluster.status in ("closed", "resolved"):
+        raise HTTPException(status_code=409, detail="Closed tickets cannot be assigned")
+
+    officer = db.query(Officer).filter(Officer.id == officer_id, Officer.active == True).first()
+    if not officer:
+        raise HTTPException(status_code=404, detail="Active officer not found")
+    if officer.department_id != cluster.department_id:
+        raise HTTPException(status_code=422, detail="Officer must belong to the issue's routed department")
 
     assignment = Assignment(
         cluster_id=cluster_id,
@@ -234,11 +244,13 @@ def assign_officer(
     )
     db.add(assignment)
 
+    previous_status = cluster.status
     if cluster.status in ("submitted", "in_review"):
         cluster.status = "assigned"
 
     db.commit()
-    notify_status_change(db, cluster_id, cluster.status)
+    if cluster.status != previous_status:
+        notify_status_change(db, cluster_id, cluster.status)
 
     # Auto-draft contractor email on assignment (5th agent trigger point)
     try:
@@ -293,6 +305,10 @@ def dispatch_contractor(cluster_id: int, db: Session = Depends(get_db)):
     cluster = db.query(IssueCluster).filter(IssueCluster.id == cluster_id).first()
     if not cluster:
         raise HTTPException(status_code=404, detail="Issue cluster not found")
+    if cluster.status == "in_progress":
+        return {"status": "success", "message": "Contractor is already marked as dispatched."}
+    if cluster.status != "assigned":
+        raise HTTPException(status_code=409, detail="Assign an officer before dispatching work")
 
     cluster.status = "in_progress"
     db.commit()
@@ -309,6 +325,8 @@ async def upload_completion_evidence(
     cluster = db.query(IssueCluster).filter(IssueCluster.id == cluster_id).first()
     if not cluster:
         raise HTTPException(status_code=404, detail="Issue cluster not found")
+    if cluster.status != "in_progress":
+        raise HTTPException(status_code=409, detail="Completion evidence can only be added after work is dispatched")
 
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     filename = f"completion_{uuid.uuid4().hex}_{file.filename}"

@@ -41,6 +41,7 @@ class IssueImage(Base):
     exif_lng = Column(Float, nullable=True)
     device_lat = Column(Float, nullable=True)
     device_lng = Column(Float, nullable=True)
+    description = Column(Text, nullable=True)
     moondream_output = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
