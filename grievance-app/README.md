@@ -1,4 +1,4 @@
-# Auto Grievance Raiser (Nagar Seva)
+# CivicSamadhaan
 
 A civic grievance redressal web application. It connects citizens reporting municipal issues with municipal staff who triage, assign, and resolve them.
 
