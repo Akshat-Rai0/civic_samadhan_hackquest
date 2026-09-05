@@ -156,3 +156,21 @@ export async function reopenIssue(clusterId, reason) {
   formData.append('reason', reason);
   return apiRequest('POST', `/admin/issues/${clusterId}/reopen`, formData, true);
 }
+
+// Contractor Email endpoints
+export async function getContractorEmailStatus(clusterId) {
+  return apiRequest('GET', `/contractor-email/${clusterId}`);
+}
+
+export async function draftContractorEmail(clusterId, officerId) {
+  return apiRequest('POST', '/contractor-email/draft', { cluster_id: clusterId, officer_id: officerId });
+}
+
+export async function approveContractorEmail(draftId, adminId = 1) {
+  return apiRequest('POST', '/contractor-email/approve', { draft_id: draftId, admin_id: adminId });
+}
+
+export async function sendContractorEmail(draftId) {
+  return apiRequest('POST', '/contractor-email/send', { draft_id: draftId });
+}
+

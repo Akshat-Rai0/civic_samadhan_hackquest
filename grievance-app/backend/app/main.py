@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.config import get_settings
 from app.database import Base, engine
-from app.routers import auth_router, issues_router, admin_router
+from app.routers import auth_router, issues_router, admin_router, contractor_email_router
+from app.models.contractor_email import ContractorEmailLog  # noqa
 from app.services.moondream_service import load_model
 
 settings = get_settings()
@@ -38,6 +39,8 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 app.include_router(auth_router)
 app.include_router(issues_router)
 app.include_router(admin_router)
+app.include_router(contractor_email_router)
+
 
 def seed_initial_data():
     from app.database import SessionLocal

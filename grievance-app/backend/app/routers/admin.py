@@ -189,7 +189,16 @@ def assign_officer(
 
     db.commit()
     notify_status_change(db, cluster_id, cluster.status)
+
+    # Auto-draft contractor email on assignment (5th agent trigger point)
+    try:
+        from app.agents.contractor_email_agent import draft_email
+        draft_email(db, cluster_id, officer_id)
+    except Exception as e:
+        print(f"Contractor email draft notice: {e}")
+
     return {"status": "success", "message": "Officer assigned successfully."}
+
 
 @router.get("/heatmap")
 def get_heatmap_data(db: Session = Depends(get_db)):
