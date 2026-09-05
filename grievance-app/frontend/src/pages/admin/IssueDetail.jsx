@@ -11,6 +11,8 @@ import {
 } from '../../api/client';
 import PriorityBadge from '../../components/PriorityBadge';
 import EscalationBadge from '../../components/EscalationBadge';
+import ContractorEmailCard from '../../components/ContractorEmailCard';
+
 
 export default function IssueDetail() {
   const { clusterId } = useParams();
@@ -343,7 +345,11 @@ export default function IssueDetail() {
               </p>
             )}
           </div>
+
+          {/* Contractor Email Agent Card */}
+          <ContractorEmailCard clusterId={clusterId} />
         </div>
+
 
         {/* Sidebar Controls */}
         <div className="flex flex-col gap-md">
