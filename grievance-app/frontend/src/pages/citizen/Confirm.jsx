@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPreview, confirmIssue } from '../../api/client';
 
@@ -12,7 +14,11 @@ export default function Confirm() {
   const [error, setError] = useState(null);
 
   const [coords, setCoords] = useState(null);
-  const [selectedZone, setSelectedZone] = useState(null);
+  const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const pinRef = useRef(null);
+
+  const needsManualPin = Boolean(previewData?.geotag?.prompt_manual_pin);
 
   useEffect(() => {
     let timer = null;
@@ -21,9 +27,10 @@ export default function Confirm() {
       try {
         const data = await getPreview(imageId);
         setPreviewData(data);
-        if (data.geotag) {
+        if (data.geotag?.lat != null && data.geotag?.lng != null) {
           setCoords({ lat: data.geotag.lat, lng: data.geotag.lng });
-          setSelectedZone(data.geotag.zone);
+        } else {
+          setCoords(null);
         }
         setLoading(false);
       } catch {
@@ -39,7 +46,44 @@ export default function Confirm() {
     };
   }, [imageId]);
 
+  useEffect(() => {
+    if (!needsManualPin || !mapContainerRef.current || mapRef.current) return;
+
+    // This is only the initial map viewport; no coordinate is submitted until
+    // the citizen deliberately clicks to place a pin.
+    const map = L.map(mapContainerRef.current).setView([28.6139, 77.2090], 11);
+    mapRef.current = map;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 18,
+    }).addTo(map);
+
+    map.on('click', (event) => {
+      const selectedCoords = {
+        lat: Number(event.latlng.lat.toFixed(6)),
+        lng: Number(event.latlng.lng.toFixed(6)),
+      };
+      setCoords(selectedCoords);
+
+      if (pinRef.current) {
+        pinRef.current.setLatLng(event.latlng);
+      } else {
+        pinRef.current = L.marker(event.latlng).addTo(map);
+      }
+    });
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      pinRef.current = null;
+    };
+  }, [needsManualPin]);
+
   const handleConfirm = async () => {
+    if (needsManualPin && !coords) {
+      setError('Please drop a pin on the map before submitting your report.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -127,17 +171,38 @@ export default function Confirm() {
                 </span>
               </div>
 
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text)', marginTop: '4px' }}>
-                {previewData?.geotag?.ward || previewData?.geotag?.zone || 'Central Zone'}
-              </div>
-
-              <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '2px' }}>
-                Postal PIN: <strong>{previewData?.geotag?.postal_code || '110001'}</strong> • City: <strong>{previewData?.geotag?.city || 'New Delhi'}</strong>
-              </div>
-
-              <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '4px' }}>
-                Coordinates: <code>{coords?.lat || previewData?.geotag?.lat}° N, {coords?.lng || previewData?.geotag?.lng}° E</code>
-              </div>
+              {needsManualPin ? (
+                <>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text)', marginTop: '4px' }}>
+                    Location required
+                  </div>
+                  <p className="text-muted" style={{ fontSize: '0.8rem', margin: '4px 0 12px' }}>
+                    This photo has no usable location metadata. Drop a pin where the issue is located to continue.
+                  </p>
+                  <div
+                    ref={mapContainerRef}
+                    aria-label="Map for choosing the issue location"
+                    style={{ height: '260px', borderRadius: 'var(--radius)', overflow: 'hidden', border: '1px solid var(--color-border)' }}
+                  />
+                  <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '8px' }}>
+                    {coords
+                      ? <>Selected coordinates: <code>{coords.lat}° N, {coords.lng}° E</code></>
+                      : 'Click the map to place your location pin.'}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text)', marginTop: '4px' }}>
+                    {previewData?.geotag?.ward || previewData?.geotag?.zone}
+                  </div>
+                  <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '2px' }}>
+                    Postal PIN: <strong>{previewData?.geotag?.postal_code}</strong> • City: <strong>{previewData?.geotag?.city}</strong>
+                  </div>
+                  <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                    Coordinates: <code>{coords?.lat}° N, {coords?.lng}° E</code>
+                  </div>
+                </>
+              )}
             </div>
 
             <div
@@ -151,7 +216,9 @@ export default function Confirm() {
             >
               <div className="text-muted" style={{ fontSize: '0.8rem' }}>Routing target:</div>
               <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--color-text)', marginTop: '2px' }}>
-                {previewData?.routed_department || 'Municipal Corporation'}
+                {needsManualPin
+                  ? 'Routing will be determined after you choose a location.'
+                  : previewData?.routed_department}
               </div>
               <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '4px' }}>
                 Estimated severity level: <strong>{previewData?.severity_hint || 'Medium'}</strong>
@@ -163,7 +230,7 @@ export default function Confirm() {
                 type="button"
                 className="btn btn-primary btn-block"
                 onClick={handleConfirm}
-                disabled={submitting}
+                disabled={submitting || (needsManualPin && !coords)}
               >
                 {submitting ? 'Submitting to authority...' : 'Yes, send to concerned authority'}
               </button>

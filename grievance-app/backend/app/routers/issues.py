@@ -29,6 +29,16 @@ class ConfirmIssueRequest(BaseModel):
     lat: Optional[float] = None
     lng: Optional[float] = None
 
+
+def has_valid_coordinates(lat: Optional[float], lng: Optional[float]) -> bool:
+    return (
+        lat is not None
+        and lng is not None
+        and -90.0 <= lat <= 90.0
+        and -180.0 <= lng <= 180.0
+        and (lat != 0.0 or lng != 0.0)
+    )
+
 @router.post("/upload")
 async def upload_issue(
     background_tasks: BackgroundTasks,
@@ -123,9 +133,12 @@ async def get_preview(
 
     classification = classify_issue("", detected)
     taxonomy_tags = get_taxonomy_tags("", detected)
-    dept_id = match_authority(geo_info.get("postal_code") or "110001", classification["category"])
-    dept = db.query(Department).filter(Department.id == dept_id).first()
-    department_name = dept.name if dept else f"{classification['category'].capitalize()} Department"
+    if has_valid_coordinates(lat, lng):
+        dept_id = match_authority(geo_info.get("postal_code"), classification["category"])
+        dept = db.query(Department).filter(Department.id == dept_id).first()
+        department_name = dept.name if dept else f"{classification['category'].capitalize()} Department"
+    else:
+        department_name = None
 
     return {
         "image_id": image.id,
@@ -164,6 +177,17 @@ async def confirm_issue(
 
     override_lat = confirm_data.lat if confirm_data else None
     override_lng = confirm_data.lng if confirm_data else None
+    image_lat = image.exif_lat if image.exif_lat is not None else image.device_lat
+    image_lng = image.exif_lng if image.exif_lng is not None else image.device_lng
+    selected_lat = override_lat if override_lat is not None else image_lat
+    selected_lng = override_lng if override_lng is not None else image_lng
+
+    if not has_valid_coordinates(selected_lat, selected_lng):
+        raise HTTPException(
+            status_code=422,
+            detail="Location is required before submission. Choose a map pin when automatic geotagging is unavailable.",
+        )
+
     cluster_id = run_process_confirmed_submission(image_id, override_lat=override_lat, override_lng=override_lng)
     return {
         "cluster_id": cluster_id,

@@ -82,6 +82,15 @@ def run_process_confirmed_submission(image_id: int, override_lat: float = None, 
             lat = image.exif_lat if image.exif_lat is not None else image.device_lat
             lng = image.exif_lng if image.exif_lng is not None else image.device_lng
 
+        if (
+            lat is None
+            or lng is None
+            or not (-90.0 <= float(lat) <= 90.0)
+            or not (-180.0 <= float(lng) <= 180.0)
+            or (float(lat) == 0.0 and float(lng) == 0.0)
+        ):
+            raise ValueError("A valid location is required before creating an issue cluster")
+
         geo_info = reverse_geocode(lat, lng)
         zone = geo_info.get("zone") or "Municipal Administrative Zone"
         postal_code = geo_info.get("postal_code")
