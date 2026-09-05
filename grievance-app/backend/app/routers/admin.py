@@ -12,6 +12,7 @@ from app.models.officer import Officer, Assignment
 from app.models.escalation import EscalationLog
 from app.models.completion import CompletionEvidence, CitizenConfirmation
 from app.schemas.issue import HeatmapPoint
+from app.services.priority_service import BASE_SEVERITY, affected_count_multiplier, compute_priority
 from app.agents.communication_agent import notify_status_change
 from app.agents.verification_agent import process_completion, close_ticket, reopen_ticket
 
@@ -67,12 +68,14 @@ def get_queue(
             "id": c.id,
             "ticket_id": f"GR-{c.id}",
             "category": c.category,
+            "issue_type": c.issue_type,
             "department_id": c.department_id,
             "department_name": dept_name,
             "zone": c.zone,
             "postal_code": c.postal_code,
             "affected_count": c.affected_count,
             "priority_score": c.priority_score,
+            "priority_override": c.priority_override,
             "sla_deadline": c.sla_deadline,
             "escalation_tier": c.escalation_tier,
             "status": c.status,
@@ -131,6 +134,7 @@ def get_issue_detail(cluster_id: int, db: Session = Depends(get_db)):
         "id": cluster.id,
         "ticket_id": f"GR-{cluster.id}",
         "category": cluster.category,
+        "issue_type": cluster.issue_type,
         "department_id": cluster.department_id,
         "department_name": dept.name if dept else "General Municipal",
         "zone": cluster.zone,
@@ -139,6 +143,15 @@ def get_issue_detail(cluster_id: int, db: Session = Depends(get_db)):
         "lng": cluster.lng or 77.2090,
         "affected_count": cluster.affected_count,
         "priority_score": cluster.priority_score,
+        "priority_override": cluster.priority_override,
+        "computed_priority_score": compute_priority(
+            cluster.issue_type or cluster.category or "default",
+            cluster.affected_count or 1,
+        ),
+        "priority_base_severity": BASE_SEVERITY.get(
+            (cluster.issue_type or "").lower(), BASE_SEVERITY["default"]
+        ),
+        "affected_count_multiplier": affected_count_multiplier(cluster.affected_count or 1),
         "sla_deadline": cluster.sla_deadline,
         "escalation_tier": cluster.escalation_tier,
         "status": cluster.status,
@@ -166,6 +179,43 @@ def get_issue_detail(cluster_id: int, db: Session = Depends(get_db)):
             }
             for ev in evidences
         ]
+    }
+
+
+@router.post("/issues/{cluster_id}/priority")
+def update_priority(
+    cluster_id: int,
+    priority_score: Optional[float] = Form(None),
+    use_computed_score: bool = Form(False),
+    db: Session = Depends(get_db),
+):
+    """Apply or clear a department-admin priority override for one ticket."""
+    cluster = db.query(IssueCluster).filter(IssueCluster.id == cluster_id).first()
+    if not cluster:
+        raise HTTPException(status_code=404, detail="Issue cluster not found")
+
+    computed_score = compute_priority(
+        cluster.issue_type or cluster.category or "default",
+        cluster.affected_count or 1,
+    )
+    if use_computed_score:
+        cluster.priority_override = None
+        cluster.priority_score = computed_score
+        message = "Automatic rubric score restored."
+    else:
+        if priority_score is None or not 0 <= priority_score <= 250:
+            raise HTTPException(status_code=422, detail="Priority score must be between 0 and 250.")
+        cluster.priority_override = round(priority_score, 1)
+        cluster.priority_score = cluster.priority_override
+        message = "Priority override saved."
+
+    db.commit()
+    return {
+        "status": "success",
+        "message": message,
+        "priority_score": cluster.priority_score,
+        "priority_override": cluster.priority_override,
+        "computed_priority_score": computed_score,
     }
 
 @router.post("/issues/{cluster_id}/assign")

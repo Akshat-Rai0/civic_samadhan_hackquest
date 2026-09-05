@@ -162,8 +162,10 @@ def add_to_cluster(db: Session, cluster: IssueCluster, image: IssueImage):
         cluster.lat = round(sum(p[0] for p in points) / len(points), 6)
         cluster.lng = round(sum(p[1] for p in points) / len(points), 6)
 
-    # Recompute priority_score with diminishing returns multiplier
-    cluster.priority_score = compute_priority(cluster.category or "default", cluster.affected_count)
+    # An explicit admin override remains authoritative. Automatic scores still
+    # recalculate as affected-count grows when no override exists.
+    if cluster.priority_override is None:
+        cluster.priority_score = compute_priority(cluster.issue_type or cluster.category or "default", cluster.affected_count)
     db.add(cluster)
     db.flush()
 
@@ -177,6 +179,7 @@ def create_new_cluster(
     category: str,
     severity_hint: str,
     confidence: float,
+    issue_type: str,
     lat: Optional[float],
     lng: Optional[float],
     image: IssueImage,
@@ -184,9 +187,10 @@ def create_new_cluster(
     zone: Optional[str] = None,
     postal_code: Optional[str] = None
 ) -> IssueCluster:
-    priority = compute_priority(category or "default", 1)
+    priority = compute_priority(issue_type or category or "default", 1)
     cluster = IssueCluster(
         category=category,
+        issue_type=issue_type,
         severity_hint=severity_hint,
         confidence=confidence,
         lat=lat,

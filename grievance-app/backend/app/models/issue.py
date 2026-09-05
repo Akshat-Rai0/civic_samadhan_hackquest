@@ -7,6 +7,7 @@ class IssueCluster(Base):
 
     id = Column(Integer, primary_key=True)
     category = Column(String(100))
+    issue_type = Column(String(100), nullable=True)
     severity_hint = Column(String(50))
     confidence = Column(Float)
     department_id = Column(Integer, ForeignKey('departments.id'), nullable=True)
@@ -16,6 +17,7 @@ class IssueCluster(Base):
     lng = Column(Float, nullable=True)
     affected_count = Column(Integer, default=1)
     priority_score = Column(Float, default=0.0)
+    priority_override = Column(Float, nullable=True)
     sla_deadline = Column(DateTime, nullable=True)
     escalation_tier = Column(Integer, default=0)
     status = Column(String(30), default='submitted')

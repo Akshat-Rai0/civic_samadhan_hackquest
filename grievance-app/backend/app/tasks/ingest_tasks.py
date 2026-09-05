@@ -8,7 +8,7 @@ from app.services.phash_service import compute_phash
 from app.services.geotag_service import extract_exif_gps, get_location
 from app.services.moondream_service import analyze_image
 from app.services.clustering_service import find_matching_cluster, add_to_cluster, create_new_cluster
-from app.services.priority_service import compute_priority
+from app.services.priority_service import resolve_issue_type
 from app.agents.classification_agent import classify_issue, reverse_geocode, match_authority
 from app.agents.communication_agent import notify_status_change
 from app.agents.escalation_agent import SLA_HOURS
@@ -68,16 +68,16 @@ def run_process_confirmed_submission(image_id: int, override_lat: float = None, 
 
         classification = classify_issue("", detected_issues)
         category = classification["category"]
+        issue_type = resolve_issue_type(detected_issues, category)
         severity_hint = classification["severity_hint"]
         confidence = classification["confidence"]
 
         if override_lat is not None and override_lng is not None:
             lat = float(override_lat)
             lng = float(override_lng)
+            # A citizen-selected map pin is not camera EXIF metadata.
             image.device_lat = lat
             image.device_lng = lng
-            image.exif_lat = lat
-            image.exif_lng = lng
         else:
             lat = image.exif_lat if image.exif_lat is not None else image.device_lat
             lng = image.exif_lng if image.exif_lng is not None else image.device_lng
@@ -119,6 +119,7 @@ def run_process_confirmed_submission(image_id: int, override_lat: float = None, 
             cluster = create_new_cluster(
                 db=db,
                 category=category,
+                issue_type=issue_type,
                 severity_hint=severity_hint,
                 confidence=confidence,
                 lat=lat,
