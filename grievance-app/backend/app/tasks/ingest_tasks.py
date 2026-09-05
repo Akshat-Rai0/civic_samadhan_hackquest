@@ -31,11 +31,14 @@ def run_process_upload(image_id: int):
         coords = get_location(file_path, image.device_lat, image.device_lng)
         if coords:
             image.exif_lat, image.exif_lng = coords
+            image.device_lat = coords[0]
+            image.device_lng = coords[1]
+        elif image.device_lat is not None and image.device_lng is not None:
+            # Device GPS present
+            pass
         else:
-            image.exif_lat = image.device_lat or 28.6139
-            image.exif_lng = image.device_lng or 77.2090
-            image.device_lat = image.exif_lat
-            image.device_lng = image.exif_lng
+            image.exif_lat = None
+            image.exif_lng = None
 
         detected = analyze_image(file_path)
         image.moondream_output = json.dumps(detected)
@@ -76,13 +79,13 @@ def run_process_confirmed_submission(image_id: int, override_lat: float = None, 
             image.exif_lat = lat
             image.exif_lng = lng
         else:
-            lat = image.exif_lat or image.device_lat or 28.6139
-            lng = image.exif_lng or image.device_lng or 77.2090
+            lat = image.exif_lat if image.exif_lat is not None else image.device_lat
+            lng = image.exif_lng if image.exif_lng is not None else image.device_lng
 
         geo_info = reverse_geocode(lat, lng)
-        zone = geo_info.get("zone", "Central Zone")
-        postal_code = geo_info.get("postal_code", "110001")
-        department_id = match_authority(postal_code, category)
+        zone = geo_info.get("zone") or "Municipal Administrative Zone"
+        postal_code = geo_info.get("postal_code")
+        department_id = match_authority(postal_code or "110001", category)
 
         # Check existing department or create fallback
         dept = db.query(Department).filter(Department.id == department_id).first()
@@ -91,13 +94,18 @@ def run_process_confirmed_submission(image_id: int, override_lat: float = None, 
             db.merge(dept)
             db.commit()
 
-        # Find or create cluster
-        existing_cluster = find_matching_cluster(db, image.phash or "", lat, lng, detected_issues)
+        # Find or create cluster with postal code grouping & real GPS radius
+        existing_cluster = find_matching_cluster(
+            db=db,
+            phash=image.phash or "",
+            lat=lat,
+            lng=lng,
+            issue_types=detected_issues,
+            postal_code=postal_code
+        )
         if existing_cluster:
             cluster = existing_cluster
             add_to_cluster(db, cluster, image)
-            cluster.priority_score = compute_priority(cluster.category, cluster.affected_count)
-            db.commit()
         else:
             cluster = create_new_cluster(
                 db=db,
@@ -106,12 +114,11 @@ def run_process_confirmed_submission(image_id: int, override_lat: float = None, 
                 confidence=confidence,
                 lat=lat,
                 lng=lng,
-                image=image
+                image=image,
+                department_id=department_id,
+                zone=zone,
+                postal_code=postal_code
             )
-            cluster.department_id = department_id
-            cluster.zone = zone
-            cluster.postal_code = postal_code
-            cluster.priority_score = compute_priority(category, cluster.affected_count)
 
             hours = SLA_HOURS.get(severity_hint.lower(), SLA_HOURS["default"])
             cluster.sla_deadline = datetime.utcnow() + timedelta(hours=hours)

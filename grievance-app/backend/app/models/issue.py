@@ -20,6 +20,7 @@ class IssueCluster(Base):
     escalation_tier = Column(Integer, default=0)
     status = Column(String(30), default='submitted')
     created_at = Column(DateTime, server_default=func.now())
+    hotspot_tier = Column(String(20), nullable=True)
 
     images = relationship("IssueImage", back_populates="cluster")
     assignments = relationship("Assignment", back_populates="cluster")

@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./uploads"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    HOTSPOT_AFFECTED_THRESHOLD: int = 2
 
     class Config:
         env_file = ".env"
