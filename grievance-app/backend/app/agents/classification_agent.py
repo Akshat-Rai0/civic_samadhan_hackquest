@@ -1,20 +1,39 @@
-def classify_issue(description: str, moondream_caption: list[str]) -> dict:
-    taxonomy = {
-        "electrical": ["streetlight", "wiring", "pole", "transformer", "power"],
-        "roads": ["pothole", "road", "crack", "asphalt", "curb"],
-        "water": ["pipe", "water", "sewage", "drain", "overflow", "manhole"],
-        "sanitation": ["garbage", "waste", "trash", "dump", "litter"],
-        "parks": ["tree", "park", "garden", "bench", "playground"],
-        "buildings": ["wall", "building", "structure", "collapse"]
-    }
-    
+import re
+
+
+TAXONOMY = {
+    "electrical": ["streetlight", "wiring", "pole", "transformer", "power"],
+    "roads": ["pothole", "road", "crack", "asphalt", "curb"],
+    "water": ["pipe", "water", "sewage", "drain", "overflow", "manhole"],
+    "sanitation": ["garbage", "waste", "trash", "dump", "litter"],
+    "parks": ["tree", "park", "garden", "bench", "playground"],
+    "buildings": ["wall", "building", "structure", "collapse"],
+}
+
+
+def _matches_keyword(text: str, keyword: str) -> bool:
+    return bool(re.search(rf"\b{re.escape(keyword)}\b", text))
+
+
+def get_taxonomy_tags(description: str, moondream_caption: list[str]) -> list[str]:
+    """Return only civic taxonomy categories matched by the model output."""
     combined_text = (description + " " + " ".join(moondream_caption)).lower()
-    
+
+    return [
+        category
+        for category, keywords in TAXONOMY.items()
+        if any(_matches_keyword(combined_text, keyword) for keyword in keywords)
+    ]
+
+
+def classify_issue(description: str, moondream_caption: list[str]) -> dict:
+    combined_text = (description + " " + " ".join(moondream_caption)).lower()
+
     best_category = "other"
     max_matches = 0
-    
-    for category, keywords in taxonomy.items():
-        matches = sum(1 for kw in keywords if kw in combined_text)
+
+    for category, keywords in TAXONOMY.items():
+        matches = sum(1 for keyword in keywords if _matches_keyword(combined_text, keyword))
         if matches > max_matches:
             max_matches = matches
             best_category = category

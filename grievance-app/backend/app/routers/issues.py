@@ -20,7 +20,7 @@ from app.schemas.issue import (
 )
 from app.routers.auth import get_current_user
 from app.tasks.ingest_tasks import process_upload, run_process_upload, run_process_confirmed_submission
-from app.agents.classification_agent import classify_issue, match_authority, reverse_geocode
+from app.agents.classification_agent import classify_issue, get_taxonomy_tags, match_authority, reverse_geocode
 
 router = APIRouter(prefix="/api/issues", tags=["Issues"])
 settings = get_settings()
@@ -122,13 +122,15 @@ async def get_preview(
         prompt_manual = True
 
     classification = classify_issue("", detected)
+    taxonomy_tags = get_taxonomy_tags("", detected)
     dept_id = match_authority(geo_info.get("postal_code") or "110001", classification["category"])
     dept = db.query(Department).filter(Department.id == dept_id).first()
     department_name = dept.name if dept else f"{classification['category'].capitalize()} Department"
 
     return {
         "image_id": image.id,
-        "detected_issues": detected,
+        # Never expose Moondream's free-form caption in the citizen UI.
+        "detected_issues": taxonomy_tags,
         "category": classification["category"],
         "severity_hint": classification["severity_hint"],
         "routed_department": department_name,
