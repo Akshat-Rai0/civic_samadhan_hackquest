@@ -144,10 +144,15 @@ async def get_preview(
     else:
         department_name = None
 
+    user_lang = current_user.get("preferred_lang", "en")
+    from app.services.translation_service import translate_text
+    translated_tags = [translate_text(tag, user_lang) for tag in taxonomy_tags] if user_lang != "en" else taxonomy_tags
+
     return {
         "image_id": image.id,
-        # Never expose Moondream's free-form caption in the citizen UI.
         "detected_issues": taxonomy_tags,
+        "translated_issues": translated_tags,
+        "preferred_lang": user_lang,
         "category": classification["category"],
         "severity_hint": classification["severity_hint"],
         "routed_department": department_name,
@@ -162,6 +167,24 @@ async def get_preview(
             "prompt_manual_pin": prompt_manual
         }
     }
+
+class TranslatePreviewRequest(BaseModel):
+    text: str
+    target_lang: str
+
+@router.post("/translate-preview")
+async def translate_preview(
+    data: TranslatePreviewRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    from app.services.translation_service import translate_text
+    translated = translate_text(data.text, data.target_lang)
+    return {
+        "original_text": data.text,
+        "translated_text": translated,
+        "target_lang": data.target_lang
+    }
+
 
 @router.post("/{image_id}/confirm")
 async def confirm_issue(

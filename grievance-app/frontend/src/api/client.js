@@ -176,3 +176,12 @@ export async function approveContractorEmail(draftId, adminId = 1) {
 export async function sendContractorEmail(draftId) {
   return apiRequest('POST', '/contractor-email/send', { draft_id: draftId });
 }
+
+// Language and Translation endpoints
+export async function updatePreferredLangApi(lang) {
+  return apiRequest('PATCH', '/auth/preferred-lang', { lang });
+}
+
+export async function translateTextApi(text, targetLang) {
+  return apiRequest('POST', '/issues/translate-preview', { text, target_lang: targetLang });
+}

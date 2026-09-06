@@ -5,7 +5,7 @@ import { useSession } from '../../context/SessionContext';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { citizen, sessionId, isAuthenticated, loginCitizen, closeSession } = useSession();
+  const { citizen, sessionId, isAuthenticated, loginCitizen, closeSession, t } = useSession();
 
   const [name, setName] = useState('Ananya Sharma');
   const [mockId, setMockId] = useState('548291034821');
@@ -17,11 +17,11 @@ export default function Login() {
   const handleSendOtp = (e) => {
     e.preventDefault();
     if (!name.trim() || !mockId.trim()) {
-      setError('Please enter your full name and 12-digit identification number.');
+      setError(t('aadhaarHint'));
       return;
     }
     if (mockId.replace(/\s+/g, '').length !== 12) {
-      setError('Identification number must be exactly 12 digits.');
+      setError(t('aadhaarHint'));
       return;
     }
     setError(null);
@@ -60,7 +60,7 @@ export default function Login() {
     <div className="container-narrow" style={{ marginTop: 'var(--spacing-xl)' }}>
       <div className="card">
         <div style={{ marginBottom: 'var(--spacing-md)' }}>
-          <h1 style={{ marginTop: 0, marginBottom: '4px' }}>Sign in</h1>
+          <h1 style={{ marginTop: 0, marginBottom: '4px' }}>{t('signIn')}</h1>
         </div>
 
         {isAuthenticated && (
@@ -74,9 +74,9 @@ export default function Login() {
             }}
           >
             <div>
-              <strong>Active Citizen Session Detected:</strong>
+              <strong>{t('activeSessionDetected')}</strong>
               <div style={{ marginTop: '4px', fontSize: '0.9rem' }}>
-                Signed in as <strong>{citizen?.name}</strong> (Session ID: <code>{sessionId}</code>)
+                {t('signedInAs')} <strong>{citizen?.name}</strong> (Session ID: <code>{sessionId}</code>)
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
@@ -85,14 +85,14 @@ export default function Login() {
                 className="btn btn-primary btn-sm"
                 onClick={() => navigate('/upload')}
               >
-                Continue to Report Issue
+                {t('continueToReport')}
               </button>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={handleSwitchUser}
               >
-                Close Session & Switch User
+                {t('closeSessionSwitch')}
               </button>
             </div>
           </div>
@@ -107,12 +107,12 @@ export default function Login() {
         {!otpStep ? (
           <form onSubmit={handleSendOtp}>
             <div className="form-group">
-              <label htmlFor="fullname">Full name</label>
+              <label htmlFor="fullname">{t('fullName')}</label>
               <input
                 id="fullname"
                 type="text"
                 className="form-input"
-                placeholder="Enter your name"
+                placeholder={t('enterName')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -120,34 +120,34 @@ export default function Login() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="mockid">Enter your Aadhaar number: </label>
+              <label htmlFor="mockid">{t('enterAadhaar')}</label>
               <input
                 id="mockid"
                 type="text"
                 maxLength={12}
                 className="form-input"
-                placeholder="XXXX XXXX XXXX"
+                placeholder={t('aadhaarPlaceholder')}
                 value={mockId}
                 onChange={(e) => setMockId(e.target.value)}
                 required
               />
               <div className="form-hint">
-                Enter your 12-digit Aadhaar number for identity registration.
+                {t('aadhaarHint')}
               </div>
             </div>
 
             <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: 'var(--spacing-md)' }}>
-              Send one-time password
+              {t('sendOtp')}
             </button>
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp}>
             <div className="notice notice-info">
-              One-time password sent. Use code <strong>123456</strong> for testing.
+              {t('otpSentNotice')}
             </div>
 
             <div className="form-group">
-              <label htmlFor="otp">Verification code</label>
+              <label htmlFor="otp">{t('verificationCode')}</label>
               <input
                 id="otp"
                 type="text"
@@ -166,7 +166,7 @@ export default function Login() {
               disabled={loading}
               style={{ marginTop: 'var(--spacing-md)' }}
             >
-              {loading ? 'Verifying...' : 'Verify and continue'}
+              {loading ? t('verifying') : t('verifyAndContinue')}
             </button>
 
             <button
@@ -175,7 +175,7 @@ export default function Login() {
               style={{ marginTop: 'var(--spacing-sm)' }}
               onClick={() => setOtpStep(false)}
             >
-              Back
+              {t('back')}
             </button>
           </form>
         )}
@@ -183,3 +183,4 @@ export default function Login() {
     </div>
   );
 }
+

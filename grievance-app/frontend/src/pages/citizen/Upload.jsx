@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadIssue } from '../../api/client';
+import { useSession } from '../../context/SessionContext';
 
 export default function Upload() {
   const navigate = useNavigate();
+  const { t } = useSession();
   const fileInputRef = useRef(null);
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -44,7 +46,7 @@ export default function Upload() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedFile) {
-      setError('Please take or choose a photograph of the issue.');
+      setError(t('selectPhotoError'));
       return;
     }
 
@@ -83,8 +85,8 @@ export default function Upload() {
         </div>
 
         <div style={{ marginBottom: 'var(--spacing-md)' }}>
-          <span className="badge badge-blue">Step 2 of 4</span>
-          <h1 style={{ marginTop: 'var(--spacing-xs)', marginBottom: '4px' }}>Report an issue</h1>
+          <span className="badge badge-blue">{t('step2of4')}</span>
+          <h1 style={{ marginTop: 'var(--spacing-xs)', marginBottom: '4px' }}>{t('reportAnIssue')}</h1>
         </div>
 
         {error && <div className="notice notice-warning">{error}</div>}
@@ -125,7 +127,7 @@ export default function Upload() {
             ) : (
               <div style={{ textAlign: 'center', padding: 'var(--spacing-md)' }}>
                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📷</div>
-                <div style={{ fontWeight: 600, color: 'var(--color-text)' }}>Tap to capture or select photo</div>
+                <div style={{ fontWeight: 600, color: 'var(--color-text)' }}>{t('tapToCapture')}</div>
               </div>
             )}
           </div>
@@ -137,16 +139,16 @@ export default function Upload() {
               style={{ marginBottom: 'var(--spacing-md)' }}
               onClick={() => fileInputRef.current && fileInputRef.current.click()}
             >
-              Choose different photo
+              {t('chooseDifferentPhoto')}
             </button>
           )}
 
           <div className="form-group">
-            <label htmlFor="desc">Describe the issue (optional)</label>
+            <label htmlFor="desc">{t('describeIssueOptional')}</label>
             <textarea
               id="desc"
               className="form-textarea"
-              placeholder="E.g. Streetlight has been flickering for three nights near the bus stop."
+              placeholder={t('describePlaceholder')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -157,7 +159,7 @@ export default function Upload() {
             className="btn btn-primary btn-block"
             disabled={submitting || !selectedFile}
           >
-            {submitting ? 'Uploading photo...' : 'Continue to confirmation'}
+            {submitting ? t('uploadingPhoto') : t('continueToConfirmation')}
           </button>
         </form>
       </div>

@@ -157,6 +157,23 @@ def get_issue_detail(cluster_id: int, db: Session = Depends(get_db)):
         if officer:
             latest_officer = officer.name
 
+    citizen_text = ""
+    for img in images:
+        if img.moondream_output:
+            try:
+                parsed = json.loads(img.moondream_output)
+                if isinstance(parsed, list):
+                    citizen_text = ", ".join(parsed)
+                else:
+                    citizen_text = str(parsed)
+            except Exception:
+                citizen_text = str(img.moondream_output)
+            if citizen_text:
+                break
+
+    from app.services.translation_service import translate_text
+    translated_text = translate_text(citizen_text, "en") if citizen_text else ""
+
     return {
         "id": cluster.id,
         "ticket_id": f"GR-{cluster.id}",
@@ -184,6 +201,8 @@ def get_issue_detail(cluster_id: int, db: Session = Depends(get_db)):
         "status": cluster.status,
         "created_at": cluster.created_at,
         "assigned_officer": latest_officer,
+        "citizen_text": citizen_text,
+        "translated_text": translated_text,
         "images": [{"id": img.id, "image_url": img.image_url, "created_at": img.created_at} for img in images],
         "assignments": [{"id": a.id, "officer_id": a.officer_id, "assigned_at": a.assigned_at} for a in assignments],
         "escalation_logs": [
@@ -244,7 +263,6 @@ def update_priority(
         "priority_override": cluster.priority_override,
         "computed_priority_score": computed_score,
     }
-
 @router.post("/issues/{cluster_id}/assign")
 def assign_officer(
     cluster_id: int,

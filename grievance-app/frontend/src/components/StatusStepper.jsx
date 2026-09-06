@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSession } from '../context/SessionContext';
 
 const STEPS = [
   { key: 'submitted', label: 'Submitted' },
@@ -10,6 +11,7 @@ const STEPS = [
 ];
 
 export default function StatusStepper({ currentStatus }) {
+  const { t } = useSession();
   const normalizedStatus = currentStatus === 'closed' ? 'resolved' : currentStatus;
   const currentIndex = STEPS.findIndex((s) => s.key === normalizedStatus);
   const activeIndex = currentIndex === -1 ? 0 : currentIndex;
@@ -79,7 +81,7 @@ export default function StatusStepper({ currentStatus }) {
                   lineHeight: '1.2',
                 }}
               >
-                {step.label}
+                {t(`status_${step.key}`) || step.label}
               </div>
             </div>
           );
@@ -88,3 +90,4 @@ export default function StatusStepper({ currentStatus }) {
     </div>
   );
 }
+
