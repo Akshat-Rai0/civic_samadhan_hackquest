@@ -18,3 +18,5 @@ torchvision>=0.17.0
 transformers>=4.40.0
 einops>=0.7.0
 accelerate>=0.28.0
+googletrans==4.0.0-rc1
+legacy-cgi>=2.6.0

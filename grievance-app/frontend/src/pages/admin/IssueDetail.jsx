@@ -214,6 +214,20 @@ export default function IssueDetail() {
                 </div>
               </div>
             </div>
+
+            {issue.citizen_text && (
+              <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--color-border)' }}>
+                <div className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '2px' }}>Citizen Description / Detected Text</div>
+                <div style={{ fontSize: '0.92rem', color: 'var(--color-heading)' }}>
+                  {issue.citizen_text}
+                </div>
+                {issue.translated_text && issue.translated_text !== issue.citizen_text && (
+                  <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '3px', fontStyle: 'italic' }}>
+                    Translation (EN): {issue.translated_text}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Citizen Reference Photos */}

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPreview, confirmIssue } from '../../api/client';
+import { useSession } from '../../context/SessionContext';
 
 export default function Confirm() {
   const { imageId } = useParams();
   const navigate = useNavigate();
+  const { t } = useSession();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -67,11 +69,8 @@ export default function Confirm() {
         </div>
 
         <div style={{ marginBottom: 'var(--spacing-md)' }}>
-          <span className="badge badge-blue">Step 3 of 4</span>
-          <h1 style={{ marginTop: 'var(--spacing-xs)', marginBottom: '4px' }}>Confirm detected issues</h1>
-          <p className="text-muted" style={{ fontSize: '0.85rem' }}>
-            Automated image inspection identified the following civic problems in your upload.
-          </p>
+          <span className="badge badge-blue">{t('step3of4')}</span>
+          <h1 style={{ marginTop: 'var(--spacing-xs)', marginBottom: '4px' }}>{t('confirmDetectedIssues')}</h1>
         </div>
 
         {error && <div className="notice notice-warning">{error}</div>}
@@ -79,30 +78,47 @@ export default function Confirm() {
         {loading ? (
           <div className="loading-center">
             <div className="spinner spinner-lg" />
-            <p style={{ fontWeight: 500, color: 'var(--color-text)' }}>Analyzing photo with Moondream vision model...</p>
+            <p style={{ fontWeight: 500, color: 'var(--color-text)' }}>{t('analyzingPhoto')}</p>
             <p className="text-muted" style={{ fontSize: '0.8rem' }}>
-              Detecting civic infrastructure defects and routing to the right department.
+              {t('detectingDefects')}
             </p>
           </div>
         ) : (
           <div>
             <div style={{ marginBottom: 'var(--spacing-md)' }}>
               <div className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '6px' }}>
-                Detected issues:
+                {t('detectedIssues')}
               </div>
               <div className="flex flex-wrap gap-xs">
                 {previewData && previewData.detected_issues && previewData.detected_issues.length > 0 ? (
-                  previewData.detected_issues.map((issue, idx) => (
-                    <span
-                      key={idx}
-                      className="badge badge-blue"
-                      style={{ padding: '6px 12px', fontSize: '0.85rem', borderRadius: '6px' }}
-                    >
-                      {issue}
-                    </span>
-                  ))
+                  previewData.detected_issues.map((issue, idx) => {
+                    const translated = previewData.translated_issues && previewData.translated_issues[idx] ? previewData.translated_issues[idx] : issue;
+                    const isTranslated = translated && translated !== issue;
+                    return (
+                      <div
+                        key={idx}
+                        className="badge badge-blue"
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          display: 'inline-flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          gap: '2px',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{translated}</span>
+                        {isTranslated && (
+                          <span style={{ fontSize: '0.72rem', opacity: 0.8, fontWeight: 400 }}>
+                            {issue}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
                 ) : (
-                  <span className="badge badge-muted">Civic issue flagged</span>
+                  <span className="badge badge-muted">{t('civicIssueFlagged')}</span>
                 )}
               </div>
             </div>
@@ -120,10 +136,10 @@ export default function Confirm() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <div style={{ fontWeight: 600, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span>📍</span>
-                  <span>Geotagged Municipal Location</span>
+                  <span>{t('geotaggedMunicipalLocation')}</span>
                 </div>
                 <span className="badge badge-green" style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
-                  {previewData?.geotag?.source || 'Verified Geotag'}
+                  {previewData?.geotag?.source || t('verifiedGeotag')}
                 </span>
               </div>
 
@@ -132,11 +148,11 @@ export default function Confirm() {
               </div>
 
               <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '2px' }}>
-                Postal PIN: <strong>{previewData?.geotag?.postal_code || '110001'}</strong> • City: <strong>{previewData?.geotag?.city || 'New Delhi'}</strong>
+                {t('postalPin')}: <strong>{previewData?.geotag?.postal_code || '110001'}</strong> • {t('city')}: <strong>{previewData?.geotag?.city || 'New Delhi'}</strong>
               </div>
 
               <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '4px' }}>
-                Coordinates: <code>{coords?.lat || previewData?.geotag?.lat}° N, {coords?.lng || previewData?.geotag?.lng}° E</code>
+                {t('coordinates')}: <code>{coords?.lat || previewData?.geotag?.lat}° N, {coords?.lng || previewData?.geotag?.lng}° E</code>
               </div>
             </div>
 
@@ -149,12 +165,12 @@ export default function Confirm() {
                 border: '1px solid var(--color-border)',
               }}
             >
-              <div className="text-muted" style={{ fontSize: '0.8rem' }}>Routing target:</div>
+              <div className="text-muted" style={{ fontSize: '0.8rem' }}>{t('routingTarget')}</div>
               <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--color-text)', marginTop: '2px' }}>
                 {previewData?.routed_department || 'Municipal Corporation'}
               </div>
               <div className="text-muted" style={{ fontSize: '0.8rem', marginTop: '4px' }}>
-                Estimated severity level: <strong>{previewData?.severity_hint || 'Medium'}</strong>
+                {t('estimatedSeverity')} <strong>{previewData?.severity_hint || 'Medium'}</strong>
               </div>
             </div>
 
@@ -165,7 +181,7 @@ export default function Confirm() {
                 onClick={handleConfirm}
                 disabled={submitting}
               >
-                {submitting ? 'Submitting to authority...' : 'Yes, send to concerned authority'}
+                {submitting ? t('submittingToAuthority') : t('yesSendToAuthority')}
               </button>
               <button
                 type="button"
@@ -173,7 +189,7 @@ export default function Confirm() {
                 onClick={handleRetake}
                 disabled={submitting}
               >
-                Retake photo
+                {t('retakePhoto')}
               </button>
             </div>
           </div>
@@ -182,3 +198,4 @@ export default function Confirm() {
     </div>
   );
 }
+

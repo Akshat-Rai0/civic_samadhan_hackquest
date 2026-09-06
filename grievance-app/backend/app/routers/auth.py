@@ -25,7 +25,11 @@ class UserOut(BaseModel):
     id: int
     mock_id_number: str
     name: str
+    preferred_lang: Optional[str] = "en"
     session_id: Optional[str] = None
+
+class PreferredLangUpdate(BaseModel):
+    lang: str
 
 class LoginResponse(BaseModel):
     access_token: str
@@ -53,7 +57,7 @@ async def get_current_user(
         
         user = db.query(User).filter(User.id == int(user_id)).first()
         if not user:
-            user = User(id=int(user_id), mock_id_number=f"ID_{user_id}", name="Citizen")
+            user = User(id=int(user_id), mock_id_number=f"ID_{user_id}", name="Citizen", preferred_lang="en")
             db.add(user)
             db.commit()
             db.refresh(user)
@@ -62,6 +66,7 @@ async def get_current_user(
             "id": user.id,
             "mock_id_number": user.mock_id_number,
             "name": user.name,
+            "preferred_lang": user.preferred_lang or "en",
             "session_id": session_id
         }
     except JWTError:
@@ -74,7 +79,7 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
         
     user = db.query(User).filter(User.mock_id_number == data.mock_id_number).first()
     if not user:
-        user = User(mock_id_number=data.mock_id_number, name="Citizen")
+        user = User(mock_id_number=data.mock_id_number, name="Citizen", preferred_lang="en")
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -86,6 +91,7 @@ async def login(data: UserLogin, db: Session = Depends(get_db)):
         id=user.id,
         mock_id_number=user.mock_id_number,
         name=user.name,
+        preferred_lang=user.preferred_lang or "en",
         session_id=session_id
     )
     return LoginResponse(
@@ -101,11 +107,16 @@ async def register(data: UserCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
         
-    user = User(mock_id_number=data.mock_id_number, name=data.name)
+    user = User(mock_id_number=data.mock_id_number, name=data.name, preferred_lang="en")
     db.add(user)
     db.commit()
     db.refresh(user)
-    return UserOut(id=user.id, mock_id_number=user.mock_id_number, name=user.name)
+    return UserOut(
+        id=user.id,
+        mock_id_number=user.mock_id_number,
+        name=user.name,
+        preferred_lang=user.preferred_lang or "en"
+    )
 
 @router.get("/me", response_model=UserOut)
 async def get_me(current_user: dict = Depends(get_current_user)):
@@ -113,6 +124,30 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         id=current_user["id"],
         mock_id_number=current_user["mock_id_number"],
         name=current_user["name"],
+        preferred_lang=current_user.get("preferred_lang", "en"),
+        session_id=current_user.get("session_id")
+    )
+
+@router.patch("/preferred-lang", response_model=UserOut)
+async def update_preferred_lang(
+    data: PreferredLangUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.id == current_user["id"]).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    clean_lang = (data.lang or "en").strip().lower()
+    user.preferred_lang = clean_lang
+    db.commit()
+    db.refresh(user)
+
+    return UserOut(
+        id=user.id,
+        mock_id_number=user.mock_id_number,
+        name=user.name,
+        preferred_lang=user.preferred_lang or "en",
         session_id=current_user.get("session_id")
     )
 
@@ -122,3 +157,4 @@ async def logout(current_user: dict = Depends(get_current_user)):
         "status": "success",
         "message": f"Session {current_user.get('session_id')} closed successfully."
     }
+

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { trackIssue, confirmResolution } from '../../api/client';
+import { useSession } from '../../context/SessionContext';
 import StatusStepper from '../../components/StatusStepper';
 import AgentUpdateLog from '../../components/AgentUpdateLog';
 import VerificationCard from '../../components/VerificationCard';
 
 export default function Track() {
   const { clusterId } = useParams();
+  const { t } = useSession();
 
   const [issueData, setIssueData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export default function Track() {
     return (
       <div className="container-narrow loading-center">
         <div className="spinner spinner-lg" />
-        <p>Loading ticket status...</p>
+        <p>{t('loadingTicket')}</p>
       </div>
     );
   }
@@ -55,10 +57,10 @@ export default function Track() {
     return (
       <div className="container-narrow" style={{ marginTop: 'var(--spacing-xl)' }}>
         <div className="card text-center">
-          <h2>Ticket not found</h2>
-          <p className="text-muted">{error || 'This report may not have been confirmed yet.'}</p>
+          <h2>{t('ticketNotFound')}</h2>
+          <p className="text-muted">{error || t('ticketNotFoundDesc')}</p>
           <Link to="/upload" className="btn btn-primary" style={{ marginTop: 'var(--spacing-md)' }}>
-            Report another issue
+            {t('reportAnotherIssue')}
           </Link>
         </div>
       </div>
@@ -82,7 +84,7 @@ export default function Track() {
           {issueData.category} Issue
         </h2>
         <p className="text-muted" style={{ fontSize: '0.85rem', margin: 0 }}>
-          Location: {issueData.zone || 'Central Ward'} (PIN: {issueData.postal_code || '110001'})
+          {t('location')}: {issueData.zone || 'Central Ward'} (PIN: {issueData.postal_code || '110001'})
         </p>
 
         {otherCount > 0 && (
@@ -90,14 +92,14 @@ export default function Track() {
             className="notice notice-info"
             style={{ marginTop: 'var(--spacing-sm)', marginBottom: 0 }}
           >
-            {otherCount} other citizen{otherCount > 1 ? 's' : ''} reported this same issue. Total reports in cluster: {issueData.affected_count}.
+            {otherCount} {t('otherCitizensReported')} {issueData.affected_count}.
           </div>
         )}
       </div>
 
       {/* Status Stepper */}
       <div className="card" style={{ marginBottom: 'var(--spacing-md)' }}>
-        <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-xs)' }}>Progress Status</h3>
+        <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-xs)' }}>{t('progressStatus')}</h3>
         <StatusStepper currentStatus={issueData.status} />
       </div>
 
@@ -116,15 +118,16 @@ export default function Track() {
 
       {/* Communication Agent Updates */}
       <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-        <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-sm)' }}>Department Updates</h3>
+        <h3 style={{ fontSize: '1rem', marginBottom: 'var(--spacing-sm)' }}>{t('departmentUpdates')}</h3>
         <AgentUpdateLog updates={issueData.notifications} />
       </div>
 
       <div className="text-center">
         <Link to="/upload" className="btn btn-secondary">
-          Report another issue
+          {t('reportAnotherIssue')}
         </Link>
       </div>
     </div>
   );
 }
+

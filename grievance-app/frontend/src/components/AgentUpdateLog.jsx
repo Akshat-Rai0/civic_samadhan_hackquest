@@ -1,11 +1,14 @@
 import React from 'react';
+import { useSession } from '../context/SessionContext';
 
 export default function AgentUpdateLog({ updates = [] }) {
+  const { t } = useSession();
+
   if (!updates || updates.length === 0) {
     return (
       <div className="card" style={{ padding: 'var(--spacing-md)' }}>
         <p className="text-muted" style={{ margin: 0, textAlign: 'center' }}>
-          No updates logged yet. Notifications will appear here as your report moves forward.
+          {t('noUpdatesYet')}
         </p>
       </div>
     );
@@ -28,7 +31,7 @@ export default function AgentUpdateLog({ updates = [] }) {
             }}
           >
             <div className="flex items-center justify-between mb-xs">
-              <span className="badge badge-blue">Communication Agent</span>
+              <span className="badge badge-blue">{t('communicationAgent')}</span>
               <small className="text-muted">{timeFormatted}</small>
             </div>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.95rem' }}>
@@ -40,3 +43,4 @@ export default function AgentUpdateLog({ updates = [] }) {
     </div>
   );
 }
+

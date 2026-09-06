@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSession } from '../context/SessionContext';
 
 export default function VerificationCard({
   evidence,
@@ -7,6 +8,8 @@ export default function VerificationCard({
   submitting = false,
   citizenStatus = null,
 }) {
+  const { t } = useSession();
+
   if (!evidence && !citizenStatus) {
     return null;
   }
@@ -22,10 +25,10 @@ export default function VerificationCard({
         }}
       >
         <div className="flex items-center gap-sm mb-xs">
-          <span className="badge badge-green">Citizen Confirmed</span>
+          <span className="badge badge-green">{t('citizenConfirmed')}</span>
         </div>
         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text)' }}>
-          You confirmed this issue was resolved. The ticket has been closed.
+          {t('citizenConfirmedDesc')}
         </p>
       </div>
     );
@@ -42,10 +45,10 @@ export default function VerificationCard({
         }}
       >
         <div className="flex items-center gap-sm mb-xs">
-          <span className="badge badge-escalated">Citizen Disputed</span>
+          <span className="badge badge-escalated">{t('citizenDisputed')}</span>
         </div>
         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text)' }}>
-          You reported that the issue is still not fixed. The ticket has been returned to the department queue.
+          {t('citizenDisputedDesc')}
         </p>
       </div>
     );
@@ -61,21 +64,21 @@ export default function VerificationCard({
       }}
     >
       <div className="flex items-center justify-between mb-sm">
-        <span className="badge badge-orange">Verification Agent</span>
+        <span className="badge badge-orange">{t('verificationAgent')}</span>
         {evidence && evidence.diff_score !== null && (
           <small style={{ fontWeight: 600, color: 'var(--color-text)' }}>
-            Resolution match score: {Math.round((evidence.diff_score || 0.85) * 100)}%
+            {t('resolutionMatchScore')} {Math.round((evidence.diff_score || 0.85) * 100)}%
           </small>
         )}
       </div>
 
       <p style={{ fontSize: '0.95rem', margin: '0 0 var(--spacing-sm) 0' }}>
-        A completion photo has been submitted by the municipal field team. Automated checks show the issue appears fixed. Please verify whether the problem is resolved at your location.
+        {t('completionPhotoSubmitted')}
       </p>
 
       {evidence && evidence.object_delta && (
         <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: 'var(--spacing-md)' }}>
-          Visual analysis: {evidence.object_delta}
+          {t('visualAnalysis')} {evidence.object_delta}
         </p>
       )}
 
@@ -87,7 +90,7 @@ export default function VerificationCard({
           onClick={onConfirm}
           disabled={submitting}
         >
-          Yes, it is fixed
+          {t('yesFixed')}
         </button>
         <button
           type="button"
@@ -96,9 +99,10 @@ export default function VerificationCard({
           onClick={onDispute}
           disabled={submitting}
         >
-          Still not fixed
+          {t('stillNotFixed')}
         </button>
       </div>
     </div>
   );
 }
+

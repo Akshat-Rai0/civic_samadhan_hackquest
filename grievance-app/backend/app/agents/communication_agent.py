@@ -1,14 +1,14 @@
 from app.models.notification import Notification
 from app.models.issue import IssueCluster, IssueImage
 from app.models.department import Department
+from app.models.user import User
+from app.services.translation_service import translate_text
 
 def detect_status_change(db, cluster_id: int, new_status: str, old_status: str) -> bool:
     return new_status != old_status
 
 def translate_message(text: str, lang: str) -> str:
-    if lang == 'en':
-        return text
-    return f"[{lang}] {text}"
+    return translate_text(text, lang)
 
 def send_notification(db, cluster_id: int, citizen_id: int, template: str, lang: str, message: str):
     if db is not None:
@@ -27,7 +27,7 @@ def send_notification(db, cluster_id: int, citizen_id: int, template: str, lang:
         except Exception as e:
             db.rollback()
             print(f"Error saving notification: {e}")
-    print(f"Notification to User {citizen_id} for Cluster {cluster_id}: {message}")
+        print(f"Notification to User {citizen_id} for Cluster {cluster_id}: {message}")
     return None
 
 def notify_status_change(db, cluster_id: int, new_status: str):
@@ -65,5 +65,13 @@ def notify_status_change(db, cluster_id: int, new_status: str):
     message = template_str.format(id=cluster_id, department=department_name, status=new_status)
 
     for cid in citizen_ids:
-        final_message = translate_message(message, "en")
-        send_notification(db, cluster_id, cid, new_status, "en", final_message)
+        lang = "en"
+        if db is not None:
+            try:
+                user = db.query(User).filter(User.id == cid).first()
+                if user and user.preferred_lang:
+                    lang = user.preferred_lang
+            except Exception:
+                lang = "en"
+        final_message = translate_message(message, lang)
+        send_notification(db, cluster_id, cid, new_status, lang, final_message)
