@@ -127,8 +127,19 @@ export async function assignOfficer(clusterId, officerId) {
   return apiRequest('POST', `/admin/issues/${clusterId}/assign`, formData, true);
 }
 
+export async function updateIssuePriority(clusterId, priorityScore = null, useComputedScore = false) {
+  const formData = new FormData();
+  if (priorityScore !== null) formData.append('priority_score', priorityScore);
+  formData.append('use_computed_score', useComputedScore);
+  return apiRequest('POST', `/admin/issues/${clusterId}/priority`, formData, true);
+}
+
 export async function getHeatmapData() {
   return apiRequest('GET', '/admin/heatmap');
+}
+
+export async function askAuthorityAssistant(message, history = []) {
+  return apiRequest('POST', '/admin/chat', { message, history });
 }
 
 export async function dispatchContractor(clusterId) {

@@ -8,6 +8,7 @@ import {
   uploadCompletion,
   closeIssue,
   reopenIssue,
+  updateIssuePriority,
 } from '../../api/client';
 import PriorityBadge from '../../components/PriorityBadge';
 import EscalationBadge from '../../components/EscalationBadge';
@@ -22,6 +23,7 @@ export default function IssueDetail() {
   const [issue, setIssue] = useState(null);
   const [officers, setOfficers] = useState([]);
   const [selectedOfficer, setSelectedOfficer] = useState('');
+  const [priorityInput, setPriorityInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [reopenReason, setReopenReason] = useState('');
@@ -33,12 +35,40 @@ export default function IssueDetail() {
     try {
       const data = await getIssueDetail(clusterId);
       setIssue(data);
+      setPriorityInput(String(data.priority_override ?? data.priority_score ?? ''));
       const officerList = await getOfficers(data.department_id);
       setOfficers(officerList);
     } catch (err) {
       setError(err.message || 'Failed to fetch issue details.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePriorityUpdate = async (e) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      await updateIssuePriority(clusterId, Number(priorityInput));
+      setNotice('Priority override saved.');
+      await fetchDetails();
+    } catch (err) {
+      setError(err.message || 'Error updating priority.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRestoreComputedPriority = async () => {
+    setActionLoading(true);
+    try {
+      await updateIssuePriority(clusterId, null, true);
+      setNotice('Automatic priority score restored.');
+      await fetchDetails();
+    } catch (err) {
+      setError(err.message || 'Error restoring automatic priority.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -198,6 +228,10 @@ export default function IssueDetail() {
               <div>
                 <div className="text-muted" style={{ fontSize: '0.8rem' }}>Category</div>
                 <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{issue.category}</div>
+              </div>
+              <div>
+                <div className="text-muted" style={{ fontSize: '0.8rem' }}>Rubric defect type</div>
+                <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{issue.issue_type || 'Needs review'}</div>
               </div>
               <div>
                 <div className="text-muted" style={{ fontSize: '0.8rem' }}>Administrative Zone</div>
@@ -368,6 +402,43 @@ export default function IssueDetail() {
         {/* Sidebar Controls */}
         <div className="flex flex-col gap-md">
           {/* Officer Assignment */}
+          <div className="card">
+            <h3>Priority control</h3>
+            <p className="text-muted" style={{ fontSize: '0.8rem', margin: '4px 0 12px' }}>
+              Automatic: base severity {issue.priority_base_severity} × affected-count multiplier {issue.affected_count_multiplier} = {issue.computed_priority_score}.
+            </p>
+            <form onSubmit={handlePriorityUpdate}>
+              <div className="form-group">
+                <label htmlFor="priority-score">Priority score</label>
+                <input
+                  id="priority-score"
+                  type="number"
+                  min="0"
+                  max="250"
+                  step="0.1"
+                  className="form-input"
+                  value={priorityInput}
+                  onChange={(e) => setPriorityInput(e.target.value)}
+                  required
+                />
+              </div>
+              <button type="submit" className="btn btn-primary btn-block" disabled={actionLoading}>
+                Save priority override
+              </button>
+              {issue.priority_override !== null && issue.priority_override !== undefined && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-block"
+                  style={{ marginTop: '8px' }}
+                  onClick={handleRestoreComputedPriority}
+                  disabled={actionLoading}
+                >
+                  Use automatic score
+                </button>
+              )}
+            </form>
+          </div>
+
           <div className="card">
             <h3>Assigned Officer</h3>
             <p style={{ fontWeight: 600, fontSize: '1.1rem', margin: '4px 0 12px 0' }}>

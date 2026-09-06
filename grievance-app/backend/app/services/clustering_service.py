@@ -25,20 +25,22 @@ def find_matching_cluster(
     phash: str,
     lat: Optional[float],
     lng: Optional[float],
-    issue_types: List[str],
+    issue_type: str,
     postal_code: Optional[str] = None
 ) -> Optional[IssueCluster]:
     """
-    Cluster match rule:
-    pHash distance below threshold OR (issue-type match AND GPS within ~15-20m) AND same postal code.
-    Radius check is real great-circle distance between two GPS points, not zone-box containment.
+    A duplicate must be both the same normalized defect type and within the
+    physical radius of an open cluster. pHash is used to prefer an exact-photo
+    match among otherwise valid candidates; it can never merge distant or
+    different defects on its own.
     """
     active_clusters = db.query(IssueCluster).filter(
         IssueCluster.status != 'closed',
         IssueCluster.status != 'resolved'
     ).all()
 
-    clean_types = [t.strip().lower() for t in issue_types if t and len(t.strip()) > 0]
+    normalized_issue_type = (issue_type or "").strip().lower()
+    type_and_location_matches = []
 
     for cluster in active_clusters:
         # Same postal code condition
@@ -62,20 +64,20 @@ def find_matching_cluster(
             if dist <= GPS_RADIUS_METERS:
                 is_within_gps_radius = True
 
-        # 3. Issue-type overlap check
-        cluster_cat = (cluster.category or "").lower()
-        has_type_match = False
-        if clean_types:
-            has_type_match = any(
-                t in cluster_cat or cluster_cat in t
-                for t in clean_types
-            )
+        # 3. Defect type must match. Legacy clusters fall back to category only
+        # until their startup backfill has populated issue_type.
+        cluster_issue_type = (cluster.issue_type or cluster.category or "").strip().lower()
+        has_type_match = bool(normalized_issue_type and normalized_issue_type == cluster_issue_type)
 
-        # Match rule: pHash distance below threshold OR (issue-type match AND GPS within ~15-20m)
-        if has_phash_match or (has_type_match and is_within_gps_radius):
+        if not (is_within_gps_radius and has_type_match):
+            continue
+        if has_phash_match:
             return cluster
+        type_and_location_matches.append(cluster)
 
-    return None
+    # Same defect at the same physical location may be photographed from a
+    # different angle, so pHash is intentionally not a mandatory final gate.
+    return type_and_location_matches[0] if type_and_location_matches else None
 
 def calculate_tier_from_percentile(score: float, all_scores: List[float]) -> str:
     """
@@ -162,8 +164,10 @@ def add_to_cluster(db: Session, cluster: IssueCluster, image: IssueImage):
         cluster.lat = round(sum(p[0] for p in points) / len(points), 6)
         cluster.lng = round(sum(p[1] for p in points) / len(points), 6)
 
-    # Recompute priority_score with diminishing returns multiplier
-    cluster.priority_score = compute_priority(cluster.category or "default", cluster.affected_count)
+    # An explicit admin override remains authoritative. Automatic scores still
+    # recalculate as affected-count grows when no override exists.
+    if cluster.priority_override is None:
+        cluster.priority_score = compute_priority(cluster.issue_type or cluster.category or "default", cluster.affected_count)
     db.add(cluster)
     db.flush()
 
@@ -177,6 +181,7 @@ def create_new_cluster(
     category: str,
     severity_hint: str,
     confidence: float,
+    issue_type: str,
     lat: Optional[float],
     lng: Optional[float],
     image: IssueImage,
@@ -184,9 +189,10 @@ def create_new_cluster(
     zone: Optional[str] = None,
     postal_code: Optional[str] = None
 ) -> IssueCluster:
-    priority = compute_priority(category or "default", 1)
+    priority = compute_priority(issue_type or category or "default", 1)
     cluster = IssueCluster(
         category=category,
+        issue_type=issue_type,
         severity_hint=severity_hint,
         confidence=confidence,
         lat=lat,

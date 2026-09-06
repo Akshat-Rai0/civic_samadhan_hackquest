@@ -1,8 +1,9 @@
 import os
 import uuid
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Literal
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.config import get_settings
@@ -12,11 +13,36 @@ from app.models.officer import Officer, Assignment
 from app.models.escalation import EscalationLog
 from app.models.completion import CompletionEvidence, CitizenConfirmation
 from app.schemas.issue import HeatmapPoint
+from app.services.priority_service import BASE_SEVERITY, affected_count_multiplier, compute_priority
 from app.agents.communication_agent import notify_status_change
 from app.agents.verification_agent import process_completion, close_ticket, reopen_ticket
+from app.services.admin_chat_service import ask_authority_assistant
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 settings = get_settings()
+
+
+class AdminChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class AdminChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+    history: List[AdminChatMessage] = Field(default_factory=list, max_length=10)
+
+
+@router.post("/chat")
+def chat_with_authority_assistant(payload: AdminChatRequest, db: Session = Depends(get_db)):
+    """Answer an authority question using the current issue database through read-only tools."""
+    try:
+        return ask_authority_assistant(
+            db,
+            payload.message,
+            [message.model_dump() for message in payload.history],
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 @router.get("/queue")
 def get_queue(
@@ -29,6 +55,8 @@ def get_queue(
         query = query.filter(IssueCluster.department_id == department_id)
     if status_filter:
         query = query.filter(IssueCluster.status == status_filter)
+    else:
+        query = query.filter(IssueCluster.status.notin_(["closed", "resolved"]))
 
     clusters = query.order_by(IssueCluster.priority_score.desc()).all()
     now = datetime.utcnow()
@@ -67,12 +95,14 @@ def get_queue(
             "id": c.id,
             "ticket_id": f"GR-{c.id}",
             "category": c.category,
+            "issue_type": c.issue_type,
             "department_id": c.department_id,
             "department_name": dept_name,
             "zone": c.zone,
             "postal_code": c.postal_code,
             "affected_count": c.affected_count,
             "priority_score": c.priority_score,
+            "priority_override": c.priority_override,
             "sla_deadline": c.sla_deadline,
             "escalation_tier": c.escalation_tier,
             "status": c.status,
@@ -148,14 +178,24 @@ def get_issue_detail(cluster_id: int, db: Session = Depends(get_db)):
         "id": cluster.id,
         "ticket_id": f"GR-{cluster.id}",
         "category": cluster.category,
+        "issue_type": cluster.issue_type,
         "department_id": cluster.department_id,
         "department_name": dept.name if dept else "General Municipal",
         "zone": cluster.zone,
         "postal_code": cluster.postal_code,
-        "lat": cluster.lat or 28.6139,
-        "lng": cluster.lng or 77.2090,
+        "lat": cluster.lat,
+        "lng": cluster.lng,
         "affected_count": cluster.affected_count,
         "priority_score": cluster.priority_score,
+        "priority_override": cluster.priority_override,
+        "computed_priority_score": compute_priority(
+            cluster.issue_type or cluster.category or "default",
+            cluster.affected_count or 1,
+        ),
+        "priority_base_severity": BASE_SEVERITY.get(
+            (cluster.issue_type or "").lower(), BASE_SEVERITY["default"]
+        ),
+        "affected_count_multiplier": affected_count_multiplier(cluster.affected_count or 1),
         "sla_deadline": cluster.sla_deadline,
         "escalation_tier": cluster.escalation_tier,
         "status": cluster.status,
@@ -188,6 +228,41 @@ def get_issue_detail(cluster_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/issues/{cluster_id}/priority")
+def update_priority(
+    cluster_id: int,
+    priority_score: Optional[float] = Form(None),
+    use_computed_score: bool = Form(False),
+    db: Session = Depends(get_db),
+):
+    """Apply or clear a department-admin priority override for one ticket."""
+    cluster = db.query(IssueCluster).filter(IssueCluster.id == cluster_id).first()
+    if not cluster:
+        raise HTTPException(status_code=404, detail="Issue cluster not found")
+
+    computed_score = compute_priority(
+        cluster.issue_type or cluster.category or "default",
+        cluster.affected_count or 1,
+    )
+    if use_computed_score:
+        cluster.priority_override = None
+        cluster.priority_score = computed_score
+        message = "Automatic rubric score restored."
+    else:
+        if priority_score is None or not 0 <= priority_score <= 250:
+            raise HTTPException(status_code=422, detail="Priority score must be between 0 and 250.")
+        cluster.priority_override = round(priority_score, 1)
+        cluster.priority_score = cluster.priority_override
+        message = "Priority override saved."
+
+    db.commit()
+    return {
+        "status": "success",
+        "message": message,
+        "priority_score": cluster.priority_score,
+        "priority_override": cluster.priority_override,
+        "computed_priority_score": computed_score,
+    }
 @router.post("/issues/{cluster_id}/assign")
 def assign_officer(
     cluster_id: int,
@@ -197,6 +272,14 @@ def assign_officer(
     cluster = db.query(IssueCluster).filter(IssueCluster.id == cluster_id).first()
     if not cluster:
         raise HTTPException(status_code=404, detail="Issue cluster not found")
+    if cluster.status in ("closed", "resolved"):
+        raise HTTPException(status_code=409, detail="Closed tickets cannot be assigned")
+
+    officer = db.query(Officer).filter(Officer.id == officer_id, Officer.active == True).first()
+    if not officer:
+        raise HTTPException(status_code=404, detail="Active officer not found")
+    if officer.department_id != cluster.department_id:
+        raise HTTPException(status_code=422, detail="Officer must belong to the issue's routed department")
 
     assignment = Assignment(
         cluster_id=cluster_id,
@@ -204,11 +287,13 @@ def assign_officer(
     )
     db.add(assignment)
 
+    previous_status = cluster.status
     if cluster.status in ("submitted", "in_review"):
         cluster.status = "assigned"
 
     db.commit()
-    notify_status_change(db, cluster_id, cluster.status)
+    if cluster.status != previous_status:
+        notify_status_change(db, cluster_id, cluster.status)
 
     # Auto-draft contractor email on assignment (5th agent trigger point)
     try:
@@ -227,7 +312,7 @@ def get_heatmap_data(db: Session = Depends(get_db)):
     db.commit()
 
     clusters = db.query(IssueCluster).filter(
-        IssueCluster.status.notin_(["closed"])
+        IssueCluster.status.notin_(["closed", "resolved"])
     ).all()
 
     points = []
@@ -256,14 +341,6 @@ def get_heatmap_data(db: Session = Depends(get_db)):
             "status": c.status
         })
 
-    # If empty, provide representative points for demo
-    if not points:
-        points = [
-            {"id": 101, "lat": 28.6139, "lng": 77.2090, "priority_score": 85.0, "category": "roads", "ticket_id": "GR-101", "affected_count": 4, "hotspot_tier": "high", "department_name": "Roads & Infrastructure"},
-            {"id": 102, "lat": 28.6200, "lng": 77.2150, "priority_score": 70.0, "category": "electrical", "ticket_id": "GR-102", "affected_count": 2, "hotspot_tier": "medium", "department_name": "Electrical Department"},
-            {"id": 103, "lat": 28.6080, "lng": 77.2020, "priority_score": 40.0, "category": "sanitation", "ticket_id": "GR-103", "affected_count": 2, "hotspot_tier": "low", "department_name": "Sanitation"},
-        ]
-
     return points
 
 @router.post("/issues/{cluster_id}/dispatch")
@@ -271,6 +348,10 @@ def dispatch_contractor(cluster_id: int, db: Session = Depends(get_db)):
     cluster = db.query(IssueCluster).filter(IssueCluster.id == cluster_id).first()
     if not cluster:
         raise HTTPException(status_code=404, detail="Issue cluster not found")
+    if cluster.status == "in_progress":
+        return {"status": "success", "message": "Contractor is already marked as dispatched."}
+    if cluster.status != "assigned":
+        raise HTTPException(status_code=409, detail="Assign an officer before dispatching work")
 
     cluster.status = "in_progress"
     db.commit()
@@ -287,6 +368,8 @@ async def upload_completion_evidence(
     cluster = db.query(IssueCluster).filter(IssueCluster.id == cluster_id).first()
     if not cluster:
         raise HTTPException(status_code=404, detail="Issue cluster not found")
+    if cluster.status != "in_progress":
+        raise HTTPException(status_code=409, detail="Completion evidence can only be added after work is dispatched")
 
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     filename = f"completion_{uuid.uuid4().hex}_{file.filename}"

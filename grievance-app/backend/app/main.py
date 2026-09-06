@@ -57,6 +57,17 @@ def seed_initial_data():
         except Exception:
             db.rollback()
 
+        for column_sql in (
+            "ALTER TABLE issue_clusters ADD COLUMN issue_type VARCHAR(100)",
+            "ALTER TABLE issue_clusters ADD COLUMN priority_override FLOAT",
+            "ALTER TABLE issue_images ADD COLUMN description TEXT",
+        ):
+            try:
+                db.execute(text(column_sql))
+                db.commit()
+            except Exception:
+                db.rollback()
+
         departments = [
             (1, "Electrical Department"),
             (2, "Roads & Infrastructure"),
@@ -90,6 +101,8 @@ def seed_initial_data():
             db.add(user)
 
         db.commit()
+        from app.services.priority_service import backfill_issue_types_and_priorities
+        backfill_issue_types_and_priorities(db)
     except Exception as e:
         db.rollback()
         print(f"Initial seed notice: {e}")

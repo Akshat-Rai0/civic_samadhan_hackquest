@@ -11,8 +11,7 @@ export default function Upload() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [description, setDescription] = useState('');
-  const [deviceCoords, setDeviceCoords] = useState({ lat: 28.6139, lng: 77.2090 });
-  const [geoStatus, setGeoStatus] = useState('detecting'); // 'detecting' | 'detected' | 'fallback'
+  const [deviceCoords, setDeviceCoords] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -24,17 +23,14 @@ export default function Upload() {
             lat: Number(pos.coords.latitude.toFixed(6)),
             lng: Number(pos.coords.longitude.toFixed(6)),
           });
-          setGeoStatus('detected');
         },
         () => {
-          // Fallback to default Central Delhi location
-          setDeviceCoords({ lat: 28.6139, lng: 77.2090 });
-          setGeoStatus('fallback');
+          // Do not invent a location. The confirmation step offers a manual pin
+          // if EXIF metadata cannot provide one either.
+          setDeviceCoords(null);
         },
         { enableHighAccuracy: true, timeout: 6000 }
       );
-    } else {
-      setGeoStatus('fallback');
     }
   }, []);
 
@@ -60,8 +56,10 @@ export default function Upload() {
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
-      formData.append('device_lat', deviceCoords.lat);
-      formData.append('device_lng', deviceCoords.lng);
+      if (deviceCoords) {
+        formData.append('device_lat', deviceCoords.lat);
+        formData.append('device_lng', deviceCoords.lng);
+      }
 
       if (description.trim()) {
         formData.append('description', description.trim());
@@ -145,45 +143,6 @@ export default function Upload() {
             </button>
           )}
 
-          {/* Location Geotag Status */}
-          <div
-            style={{
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius)',
-              padding: '12px 14px',
-              backgroundColor: 'var(--color-bg)',
-              marginBottom: 'var(--spacing-md)',
-              fontSize: '0.85rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>📍</span>
-                <span>{t('municipalLocationGeotag')}</span>
-              </div>
-              <span
-                className={`badge ${
-                  geoStatus === 'detected'
-                    ? 'badge-green'
-                    : geoStatus === 'detecting'
-                    ? 'badge-blue'
-                    : 'badge-muted'
-                }`}
-                style={{ fontSize: '0.75rem', padding: '2px 8px' }}
-              >
-                {geoStatus === 'detected'
-                  ? t('gpsCaptured')
-                  : geoStatus === 'detecting'
-                  ? t('detectingGps')
-                  : t('municipalWardPin')}
-              </span>
-            </div>
-
-            <div className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '8px' }}>
-              {t('coordinates')}: <strong>{deviceCoords.lat}° N, {deviceCoords.lng}° E</strong>
-            </div>
-          </div>
-
           <div className="form-group">
             <label htmlFor="desc">{t('describeIssueOptional')}</label>
             <textarea
@@ -207,4 +166,3 @@ export default function Upload() {
     </div>
   );
 }
-

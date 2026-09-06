@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getQueue } from '../../api/client';
 import IssueTable from '../../components/IssueTable';
+import AuthorityAssistant from '../../components/AuthorityAssistant';
 
 export default function Queue() {
   const navigate = useNavigate();
@@ -168,6 +169,8 @@ export default function Queue() {
       ) : (
         <IssueTable issues={issues} onRowClick={handleRowClick} />
       )}
+
+      <AuthorityAssistant />
     </div>
   );
 }

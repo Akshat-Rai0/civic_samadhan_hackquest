@@ -29,6 +29,16 @@ class ConfirmIssueRequest(BaseModel):
     lat: Optional[float] = None
     lng: Optional[float] = None
 
+
+def has_valid_coordinates(lat: Optional[float], lng: Optional[float]) -> bool:
+    return (
+        lat is not None
+        and lng is not None
+        and -90.0 <= lat <= 90.0
+        and -180.0 <= lng <= 180.0
+        and (lat != 0.0 or lng != 0.0)
+    )
+
 @router.post("/upload")
 async def upload_issue(
     background_tasks: BackgroundTasks,
@@ -58,7 +68,8 @@ async def upload_issue(
         db.add(user)
         db.commit()
 
-    # Resolve geotag immediately (EXIF GPS -> Device GPS -> Civic default)
+    # Resolve EXIF GPS or device GPS. Missing data is handled by the manual-pin
+    # step on the confirmation screen; a location is never fabricated.
     from app.services.geotag_service import resolve_location
     resolved_lat, resolved_lng, geo_src = resolve_location(file_path, device_lat, device_lng)
 
@@ -69,7 +80,8 @@ async def upload_issue(
         device_lat=resolved_lat,
         device_lng=resolved_lng,
         exif_lat=resolved_lat if geo_src == "exif" else None,
-        exif_lng=resolved_lng if geo_src == "exif" else None
+        exif_lng=resolved_lng if geo_src == "exif" else None,
+        description=description.strip() if description else None,
     )
     db.add(image_record)
     db.commit()
@@ -96,6 +108,8 @@ async def get_preview(
     image = db.query(IssueImage).filter(IssueImage.id == image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
+    if image.uploaded_by_user_id != int(current_user["id"]):
+        raise HTTPException(status_code=403, detail="You can only preview your own uploads")
 
     if not image.moondream_output:
         # If still processing, run now if needed
@@ -112,7 +126,7 @@ async def get_preview(
     lat = image.exif_lat if image.exif_lat is not None else image.device_lat
     lng = image.exif_lng if image.exif_lng is not None else image.device_lng
 
-    if lat is not None and lng is not None:
+    if has_valid_coordinates(lat, lng):
         geo_info = reverse_geocode(lat, lng)
         source_label = "EXIF metadata" if image.exif_lat is not None else "Device GPS"
         prompt_manual = False
@@ -121,11 +135,14 @@ async def get_preview(
         source_label = "manual_required"
         prompt_manual = True
 
-    classification = classify_issue("", detected)
-    taxonomy_tags = get_taxonomy_tags("", detected)
-    dept_id = match_authority(geo_info.get("postal_code") or "110001", classification["category"])
-    dept = db.query(Department).filter(Department.id == dept_id).first()
-    department_name = dept.name if dept else f"{classification['category'].capitalize()} Department"
+    classification = classify_issue(image.description or "", detected)
+    taxonomy_tags = get_taxonomy_tags(image.description or "", detected)
+    if has_valid_coordinates(lat, lng):
+        dept_id = match_authority(geo_info.get("postal_code"), classification["category"])
+        dept = db.query(Department).filter(Department.id == dept_id).first()
+        department_name = dept.name if dept else f"{classification['category'].capitalize()} Department"
+    else:
+        department_name = None
 
     user_lang = current_user.get("preferred_lang", "en")
     from app.services.translation_service import translate_text
@@ -179,14 +196,37 @@ async def confirm_issue(
     image = db.query(IssueImage).filter(IssueImage.id == image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
+    if image.uploaded_by_user_id != int(current_user["id"]):
+        raise HTTPException(status_code=403, detail="You can only confirm your own uploads")
+    if image.cluster_id is not None:
+        return {
+            "cluster_id": image.cluster_id,
+            "status": "confirmed",
+            "already_confirmed": True,
+            "message": "This report was already submitted to the municipal department.",
+        }
 
-    # If moondream analysis hasn't run yet, run it
+    override_lat = confirm_data.lat if confirm_data else None
+    override_lng = confirm_data.lng if confirm_data else None
+    if (override_lat is None) != (override_lng is None):
+        raise HTTPException(status_code=422, detail="Both latitude and longitude are required for a manual map pin.")
+    image_lat = image.exif_lat if image.exif_lat is not None else image.device_lat
+    image_lng = image.exif_lng if image.exif_lng is not None else image.device_lng
+    selected_lat = override_lat if override_lat is not None else image_lat
+    selected_lng = override_lng if override_lng is not None else image_lng
+
+    if not has_valid_coordinates(selected_lat, selected_lng):
+        raise HTTPException(
+            status_code=422,
+            detail="Location is required before submission. Choose a map pin when automatic geotagging is unavailable.",
+        )
+
+    # If asynchronous analysis has not finished, complete it only after the
+    # report has passed the mandatory location gate.
     if not image.moondream_output:
         run_process_upload(image_id)
         db.refresh(image)
 
-    override_lat = confirm_data.lat if confirm_data else None
-    override_lng = confirm_data.lng if confirm_data else None
     cluster_id = run_process_confirmed_submission(image_id, override_lat=override_lat, override_lng=override_lng)
     return {
         "cluster_id": cluster_id,
